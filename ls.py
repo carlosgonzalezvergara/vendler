@@ -276,66 +276,76 @@ def añadir_operadores(estructura_logica):
     ATENUADO = "\033[2m"
     RESET = "\033[0m"
 
-    if input_si_no("\n¿Quieres añadir operadores a la estructura lógica? (s/n): "):
-        print("\nOperadores clausulares:")
-        for i, op in enumerate(OPERADORES[:4], 1):
-            print(f"{i}. {op.descripcion}")
-        print("\nOperadores centrales:")
-        for i, op in enumerate(OPERADORES[4:8], 5):
-            print(f"{i}. {op.descripcion}")
-        print("\nOperadores nucleares:")
-        for i, op in enumerate(OPERADORES[8:], 9):
-            print(f"{i}. {op.descripcion}")
-        print("\nEscribe el número del operador que quieras incluir y aprieta «Enter» para seleccionarlo.")
-        print("Escribe «0» cuando quieras terminar la selección.\n")
+    if not input_si_no("\n¿Quieres añadir operadores a la estructura lógica? (s/n): "):
+        return estructura_logica
+
+    print("\n--- SELECCIÓN DE OPERADORES ---")
+    print("Operadores clausulares:")
+    for i, op in enumerate(OPERADORES[:4], 1):
+        print(f" {i:>2}. {op.descripcion}")
+    print("\nOperadores centrales:")
+    for i, op in enumerate(OPERADORES[4:8], 5):
+        print(f" {i:>2}. {op.descripcion}")
+    print("\nOperadores nucleares:")
+    for i, op in enumerate(OPERADORES[8:], 9):
+        print(f" {i:>2}. {op.descripcion}")
+    
+    print("\nEscribe los números de los operadores que desees, separados por comas o espacios.")
+    print(f"Ejemplo: {ITALICA}1, 4, 10{RESET} (para Fuerza ilocutiva, Tiempo y Aspecto)")
+    
+    while True:
+        entrada = peticion("\nSelección: ")
+        if not entrada:
+            return estructura_logica
+            
+        # Normalizamos la entrada: reemplazamos comas por espacios y dividimos
+        numeros_str = entrada.replace(',', ' ').split()
         
         operadores_seleccionados = []
-        operadores_ya_seleccionados = set()
-        
-        while True:
-            seleccion = peticion("Número del operador (o «0» para terminar): ")
-            if seleccion == '0':
-                print()
-                break
-            try:
-                num = int(seleccion)
+        try:
+            indices_vistos = set()
+            for n in numeros_str:
+                num = int(n)
                 if num < 1 or num > len(OPERADORES):
-                    raise ValueError(f"El número debe estar entre 1 y {len(OPERADORES)}")
-                if num in operadores_ya_seleccionados:
-                    print(f"El operador «{OPERADORES[num-1].descripcion}» ya ha sido seleccionado. Por favor, elige otro.")
-                    continue
+                    raise ValueError(f"El número {num} no es válido.")
+                if num in indices_vistos:
+                    continue # Ignorar duplicados silenciosamente o avisar
+                
+                indices_vistos.add(num)
                 operadores_seleccionados.append(OPERADORES[num-1])
-                operadores_ya_seleccionados.add(num)
-                print(f"Se añadirá el operador {OPERADORES[num-1].descripcion}.")
-            except ValueError:
-                print("Entrada inválida. Por favor, escribe un número entre 1 y 11. Si quieres terminar la selección, escribe «0».")
-        
-        operadores_seleccionados.sort(key=lambda op: OPERADORES.index(op))
-        
-        estructura_logica = f"[{estructura_logica}]"
-        
-        operadores_con_valores = []
-        for op in operadores_seleccionados:
-            if op.requiere_valor:
-                valor = peticion(f"Escribe el valor para {op.descripcion} (ej: {op.ejemplos}): ").upper()
-                if op.codigo == 'STA' and valor == 'NEG':
-                    valor = 'NEG +'
-                operadores_con_valores.append((op.codigo, valor))
-            else:
-                operadores_con_valores.append((op.codigo, None))
-        
-        for codigo, valor in reversed(operadores_con_valores):
-            # Formato para la CATEGORÍA (TNS, ASP...) -> Atenuado
-            cat_fmt = f"{ATENUADO}{codigo}{RESET}"
             
-            if valor is not None:
-                # Formato para el VALOR (PAST, PROG...) -> Itálica
-                val_fmt = f"{ITALICA}{valor}{RESET}"
-                estructura_logica = f"<{cat_fmt} {val_fmt} {estructura_logica}>"
-            else:
-                estructura_logica = f"<{cat_fmt} {estructura_logica}>"
-        
-        print(f"\nLa estructura lógica con operadores es: {estructura_logica}")
+            break 
+            
+        except ValueError:
+            print("Entrada inválida. Asegúrate de escribir solo números del 1 al 11.")
+
+    # Ordenamos según la jerarquía RRG (basado en el orden de la lista global)
+    operadores_seleccionados.sort(key=lambda op: OPERADORES.index(op))
+    
+    estructura_logica = f"[{estructura_logica}]"
+    
+    # Fase de asignación de valores
+    operadores_con_valores = []
+    
+    for op in operadores_seleccionados:
+        if op.requiere_valor:
+            valor = peticion(f"Escribe el valor para {op.descripcion} ({op.codigo}) [Ej: {op.ejemplos}]: ").upper()
+            if op.codigo == 'STA' and valor == 'NEG':
+                valor = 'NEG +'
+            operadores_con_valores.append((op.codigo, valor))
+        else:
+            operadores_con_valores.append((op.codigo, None))
+    
+    # Construcción del string (De adentro hacia afuera)
+    for codigo, valor in reversed(operadores_con_valores):
+        cat_fmt = f"{ATENUADO}{codigo}{RESET}"
+        if valor:
+            val_fmt = f"{ITALICA}{valor}{RESET}"
+            estructura_logica = f"<{cat_fmt} {val_fmt} {estructura_logica}>"
+        else:
+            estructura_logica = f"<{cat_fmt} {estructura_logica}>"
+    
+    print(f"\nLa estructura lógica con operadores es: {estructura_logica}")
     
     return estructura_logica
 
@@ -529,15 +539,14 @@ def manejar_desplazamiento(AKT, x, y, z, pred, locus, es_causativa, oracion_orig
     categoria_movimiento = buscar_verbo(pred, VERBOS_MOVIMIENTO)
     if categoria_movimiento:
         pred = categoria_movimiento
-    if locus == "Ø":
-        es_consumo = input_si_no(f"¿«{oracion_original[0].upper() + oracion_original[1:]}» es similar a «{x} corrió una maratón»? (s/n): ")
-        if es_consumo:
-            return manejar_otros(x, y, z, pred, es_causativa, oracion_original)
-        else:
-            print("\nNo puede tratarse de una realización activa de desplazamiento sin una ubicación que lo delimite.")
-            raise ValueError(f"No es posible generar una estructura lógica para estos parámetros.\nParámetros: aktionsart: «{AKT}»; verbo: «{pred}»; sujeto: «{x}»; c. directo: «{y}»; c. indirecto: «{z}»; locativo: «{locus}».")
+
+    if (locus == "Ø" or (locus != "Ø" and y != "Ø")) and not es_causativa: #"Pepe corrió una maratón" o "Pepe corrió un kilómetro hasta su casa"
+        return f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN be-loc' ({locus}, {x})"
+
+
     lugar_tipo = peticion(f"¿«{locus}» es (1) la procedencia o (2) el destino? Escribe 1 o 2: ")
     fin_loc = "NOT be-loc'" if lugar_tipo == "1" else "be-loc'"
+    
     if es_causativa:
         pred = peticion(f"Escribe en infinitivo la actividad realizada por «{y}» (ej: «correr»): ").lower().replace(" ", ".")
         return f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC covering.path.distance' ({y}) ∧ FIN {fin_loc} ({locus}, {y})]"
@@ -734,7 +743,7 @@ def complemento_regimen(AKT, x, y, operador, es_dinamico, oracion_original):
 
 def casos_locativos(estructura_logica, AKT, x, y, z, operador, es_dinamico, oracion_original):
     locus = "Ø"
-    if input_si_no(f"Considera la cláusula «{oracion_original}». \n¿Alguno de sus constituyentes argumentales (no periféricos)\nindica la ubicación, el destino o el punto de partida de «{x}»{' o «' + y + '»' if y != 'Ø' else ''}? (s/n): "):
+    if input_si_no(f"Considera la cláusula «{oracion_original}». \n¿Alguno de sus constituyentes argumentales (no periféricos) indica la ubicación, \nel destino o el punto de partida de «{x}»{' o «' + y + '»' if y != 'Ø' else ''}? (s/n): "):
         locus = peticion("Escribe la información del lugar, sin preposición: ")
         pred = peticion("Escribe el infinitivo del verbo: ").lower().replace(" ", ".")
         
