@@ -618,15 +618,15 @@ def manejar_realizacion_activa_diccion(x, y, z, pred):
     z_clean = z.replace(" ", ".")
     
     if pred in VERBOS_DICCION["preguntar"]:
-        return f"[do' ({x}, [express.question.to.{z_clean}' ({x}, pregunta)]) ∧ PROC being.created' (pregunta) ∧ FIN exist' (pregunta)] PURP [do' ({z}, [express.{y_clean}.to.{x}' ({z}, {y})])]"
+        return f"[do' ({x}, [express.question' ({x}, pregunta)]) ∧ PROC being.created' (pregunta) ∧ FIN exist' (pregunta)] PURP [do' ({z}, [express.something' ({z}, {y})])]"
     elif pred in VERBOS_DICCION["agradecer"]:
         arg_incorporado = VERBOS_DICCION["agradecer"][pred]
-        return f"[do' ({x}, [express.{arg_incorporado}.because.of.{y_clean}.to.{z_clean}' ({x}, {y})]) ∧ PROC being.created' ({arg_incorporado}) ∧ FIN exist' ({arg_incorporado})] PURP [know' ({z}, {arg_incorporado} por {y})]"
+        return f"[do' ({x}, [express.{arg_incorporado}' ({x}, {y})]) ∧ PROC being.created' ({arg_incorporado}) ∧ FIN exist' ({arg_incorporado})] PURP [know' ({z}, {arg_incorporado} por {y})]"
     elif pred in VERBOS_DICCION["bendecir"]:
         arg_incorporado = VERBOS_DICCION["bendecir"][pred]
-        return f"[do' ({x}, [express.{arg_incorporado}.of.{y_clean}.to.{z_clean}' ({x}, {y})]) ∧ PROC being.created' ({arg_incorporado}) ∧ FIN exist' ({arg_incorporado})] PURP [know' ({z}, {arg_incorporado} de {y})]"
+        return f"[do' ({x}, [express.{arg_incorporado}' ({x}, {y})]) ∧ PROC being.created' ({arg_incorporado}) ∧ FIN exist' ({arg_incorporado})] PURP [know' ({z}, {arg_incorporado} de {y})]"
     else:
-        return f"[do' ({x}, [express.something.to.{z_clean}' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})] PURP [know' ({z}, {y})]"
+        return f"[do' ({x}, [express.something' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})] PURP [know' ({z}, {y})]"
 
 def manejar_verbos_transferencia(x, y, z, pred, operador, AKT): # Añadimos AKT en los argumentos
     if pred in VERBOS_TRANSFERENCIA["sacar"]:
@@ -646,15 +646,15 @@ def manejar_verbo_diccion(x, y, z, pred, operador):
     z_clean = z.replace(" ", ".")
 
     if pred in VERBOS_DICCION["preguntar"]:
-        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.question.to.{z_clean}' ({x})])] PURP [do' ({z}, [express.{y_clean}.to.{x}' ({z}, {y})])]"
+        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.question' ({x})])] PURP [do' ({z}, [express.{y_clean}' ({z}, {y})])]"
     elif pred in VERBOS_DICCION["agradecer"]:
         arg_incorporado = VERBOS_DICCION["agradecer"][pred]
-        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.{arg_incorporado}.because.of.{y_clean}.to.{z_clean}' ({x}, {y})])] PURP [know' ({z}, {arg_incorporado} por {y})]"
+        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.{arg_incorporado}' ({x}, {y})])] PURP [know' ({z}, {arg_incorporado} por {y})]"
     elif pred in VERBOS_DICCION["bendecir"]:
         arg_incorporado = VERBOS_DICCION["bendecir"][pred]
-        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.{arg_incorporado}.of.{y_clean}.to.{z_clean}' ({x}, {y})])] PURP [know' ({z}, {arg_incorporado} de {y})]"
+        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.{arg_incorporado}' ({x}, {y})])] PURP [know' ({z}, {arg_incorporado} de {y})]"
     else:
-        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.something.to.{z_clean}' ({x}, {y})])] PURP [know' ({z}, {y})]"
+        return f"[{operador + ' ' if operador else ''}do' ({x}, [express.something' ({x}, {y})])] PURP [know' ({z}, {y})]"
 
 def manejar_otros_verbos(AKT, x, y, z, pred, operador):
     if AKT == "realización activa causativa": #enseñar de a poco algo específico a alguien
