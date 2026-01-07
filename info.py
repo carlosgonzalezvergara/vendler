@@ -12,7 +12,6 @@ def mostrar_info():
         **Autor:** Carlos González Vergara  
         **Afiliación:** Facultad de Letras, Pontificia Universidad Católica de Chile.  
         **Desarrollo:** Este software fue desarrollado en Python como una herramienta de apoyo para la investigación y docencia en el marco de la **Gramática de Papel y Referencia (RRG)**.
-        
         **Agradecimientos:** Un agradecimiento especial a **Rocío Jiménez Briones** por su invaluable colaboración en el desarrollo de la versión en inglés del detector de Aktionsart.
         """)
 
@@ -34,7 +33,6 @@ def mostrar_info():
         **Author:** Carlos González Vergara  
         **Affiliation:** Faculty of Letters, Pontificia Universidad Católica de Chile.  
         **Development:** This software was developed in Python as a support tool for research and teaching within the **Role and Reference Grammar (RRG)** framework.
-        
         **Acknowledgements:** Special thanks to **Rocío Jiménez Briones** for her invaluable collaboration in the development of the English version of the Aktionsart detector.
         """)
 
