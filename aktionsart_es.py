@@ -43,7 +43,7 @@ class DatosClause:
 
 IRREGULARES = {
     "abrir": {"pp": "abierto"}, "cubrir": {"pp": "cubierto"},
-    "decir": {"ger": "diciendo", "pp": "dicho"}, "escribir": {"pp": "escrito"},
+    "decir": {"ger": "diciendo", "pp": "dicho"}, "descubrir": {"pp": "descubierto"}, "escribir": {"pp": "escrito"},
     "hacer": {"pp": "hecho"}, "freír": {"pp": "frito"},
     "imprimir": {"pp": "impreso"}, "morir": {"ger": "muriendo", "pp": "muerto"},
     "poner": {"pp": "puesto"}, "proveer": {"pp": "provisto"},
@@ -63,6 +63,7 @@ IRREGULARES = {
     "competir": {"ger": "compitiendo"}, "medir": {"ger": "midiendo"},
     "despedir": {"ger": "despidiendo"}, "impedir": {"ger": "impidiendo"},
     "dormir": {"ger": "durmiendo"}, "poder": {"ger": "pudiendo"}
+  
 }
 
 ESTAR_PRETERITO = {'1s': "estuve", '2s': "estuviste", '3s': "estuvo", '1p': "estuvimos", '2p': "estuvieron", '3p': "estuvieron"}
@@ -390,6 +391,7 @@ def mostrar_detector_es():
                 ir_a('manual_morph')
 
         elif st.session_state.akt_paso == 'manual_morph':
+            st.info("Por favor, agrega o corrige la información que sea necesaria:")
             with st.form(key="form_m_save"):
                 d = st.session_state.datos
                 d.infinitivo = st.text_input(f"Escribe el **infinitivo** del verbo en *{st.session_state.oracion_actual}*, incluyendo los clíticos que haya:", d.infinitivo)

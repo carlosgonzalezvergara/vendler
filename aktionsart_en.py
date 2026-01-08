@@ -560,6 +560,7 @@ def mostrar_detector_en():
                 go_to('manual_morph')
 
         elif st.session_state.akt_step == 'manual_morph':
+            st.info("Please add or correct any necessary information:")
             with st.form(key="form_m_save_en"):
                 d = st.session_state.data
                 d.infinitive = st.text_input(f"Type the **infinitive** of the verb in *{st.session_state.current_clause}*:", d.infinitive)
