@@ -932,8 +932,9 @@ def mostrar_asistente_ls():
         # --- PASO: ARGUMENTOS ---
         elif st.session_state.ls_paso == 'argumentos':
             st.markdown("#### **Identificación de argumentos**")
-            st.info("Selecciona los argumentos presentes en la cláusula. Luego escríbelos si se trata de constituyentes sintácticos.")
-            st.warning("Si la información se expresa solo en un afijo o un clítico, ingresa sus rasgos (ej.: *1sg*, *3pl*, etc.).")
+            st.info("Selecciona los **argumentos** presentes en la cláusula. Luego escríbelos si se trata de constituyentes sintácticos.")
+            st.warning("Asegúrate de que el complemento indirecto no se trate de un **dativo ético**.")
+            st.warning("Si la información se expresa solo en un afijo o un clítico, ingresa sus rasgos (ej.: *1sg*, *3pl*).")
             
             with st.form(key="form_args"):
                 # Sujeto
@@ -1072,10 +1073,13 @@ def mostrar_asistente_ls():
             es_dinamico = st.session_state.ls_es_dinamico
             operador = MODIFICADORES_AKT.get(AKT, "")
             
-            # Verificar verbos tipo "doler/gustar"
+            # Verificar verbos tipo "doler/gustar" y dativo experimentante
             if "causativ" not in AKT and AKT != "realización activa" and x != "Ø" and y == "Ø" and z != "Ø":
                 st.session_state.ls_caso_actual = 'doler_gustar'
-                ir_a('pregunta_doler_gustar')
+                if AKT != "actividad":
+                    ir_a('pregunta_dativo_experimentante')
+                else:
+                    ir_a('pregunta_doler_gustar')
             # Verificar "hacer" meteorológico
             elif x == "Ø" and y != "Ø":
                 st.session_state.ls_caso_actual = 'hacer_meteo'
@@ -1101,7 +1105,64 @@ def mostrar_asistente_ls():
                 ir_a('caso_locativo')
 
         # --- PREGUNTAS ESPECÍFICAS PARA CASOS ESPECIALES ---
-        
+        # --- PREGUNTA DATIVO EXPERIMENTANTE ---
+        elif st.session_state.ls_paso == 'pregunta_dativo_experimentante':
+            oracion = st.session_state.ls_oracion
+            x = st.session_state.ls_x
+            z = st.session_state.ls_z
+            st.info(f"""¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a alguno de estos ejemplos?
+
+• *Se me/te/le [verbo] {x}*  
+• *A {z} se me/te/le [verbo] {x}*""")
+            c1, c2 = st.columns(2)
+            c1.button("Sí", use_container_width=True, key="dat_exp_si", on_click=crear_callback_ir_a('pred_dativo_experimentante'))
+            c2.button("No", use_container_width=True, key="dat_exp_no", on_click=crear_callback_ir_a('pregunta_doler_gustar'))
+            botones_navegacion()
+
+        elif st.session_state.ls_paso == 'pred_dativo_experimentante':
+            with st.form(key="form_pred_dat_exp"):
+                st.info("Escribe el **infinitivo** del verbo:")
+                pred = st.text_input("Infinitivo", label_visibility="collapsed")
+                if st.form_submit_button("Generar estructura"):
+                    st.session_state.ls_pred = pred.lower().replace(" ", ".")
+                    ir_a('generar_dativo_experimentante')
+            botones_navegacion()
+
+        elif st.session_state.ls_paso == 'generar_dativo_experimentante':
+            x = st.session_state.ls_x
+            z = st.session_state.ls_z
+            pred = st.session_state.ls_pred
+            operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
+
+            participio = infinitivo_a_participio(pred).replace(" ", ".")
+
+            st.session_state.ls_participio_dat_exp = participio
+            st.session_state.ls_operador_dat_exp = operador
+            ir_a('anticausativa_dativo_experimentante')
+
+        elif st.session_state.ls_paso == 'anticausativa_dativo_experimentante':
+            x = st.session_state.ls_x
+            z = st.session_state.ls_z
+            participio = st.session_state.ls_participio_dat_exp
+            operador = st.session_state.ls_operador_dat_exp
+
+            st.info("¿El verbo de la cláusula tiene una contraparte causativa (ej.: *romperse* / *romper*)?")
+            c1, c2 = st.columns(2)
+
+            def _anti_dat_si():
+                ls = f"[do' (Ø, Ø)] CAUSE [{operador + ' ' if operador else ''}{participio}' ({x})] ∧ affected' ({z})"
+                st.session_state.ls_estructura = ls
+                st.session_state.ls_paso = 'resultado'
+
+            def _anti_dat_no():
+                ls = f"{operador + ' ' if operador else ''}{participio}' ({x}) ∧ affected' ({z})"
+                st.session_state.ls_estructura = ls
+                st.session_state.ls_paso = 'resultado'
+
+            c1.button("Sí", use_container_width=True, key="anti_dat_si", on_click=_anti_dat_si)
+            c2.button("No", use_container_width=True, key="anti_dat_no", on_click=_anti_dat_no)
+            botones_navegacion()
+
         elif st.session_state.ls_paso == 'pregunta_doler_gustar':
             x = st.session_state.ls_x
             z = st.session_state.ls_z
@@ -1480,12 +1541,14 @@ def mostrar_asistente_ls():
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'error_oi':
-            AKT = st.session_state.ls_akt
             pred = st.session_state.ls_pred
-            x = st.session_state.ls_x
-            y = st.session_state.ls_y
             z = st.session_state.ls_z
-            st.error(f"Asegúrate de que **{z}** sea un argumento de **{pred}** y de que no se trate de una construcción aplicativa.\n\nParámetros: aktionsart: *{AKT}*; verbo: *{pred}*; sujeto: *{x}*; c. directo: *{y}*; c. indirecto: *{z}*.")
+
+            st.error(
+                "Error. No se puede generar una estructura lógica con estos datos.\n\n"
+                f"Asegúrate de que **{z}** sea un argumento de **{pred}** y de que no se trate de un dativo ético o parte de una construcción aplicativa."
+            )
+
             botones_navegacion()
 
         # --- CASOS ESPECIALES DE ESTADO ---
