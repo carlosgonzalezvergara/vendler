@@ -3,6 +3,8 @@ import aktionsart_es
 import aktionsart_en
 import ls
 import info
+import base64
+from pathlib import Path
 
 # Configuración de la página (Sin barra lateral)
 st.set_page_config(
@@ -99,7 +101,16 @@ L = textos[st.session_state.lang]
 
 col_tit, col_btn = st.columns([0.7, 0.3])
 with col_tit:
-    st.image("vendler.png", width=300)
+    try:
+        logo_path = Path(__file__).parent / "vendler.png"
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        st.markdown(
+            f'<img src="data:image/png;base64,{logo_data}" alt="Vendler" width="300">',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        st.title("Vendler")
     st.caption(L['subtitulo'])
 with col_btn:
     st.button(L['lang_label'], on_click=cambiar_idioma, key="lang_btn", use_container_width=True)
@@ -142,8 +153,8 @@ if st.session_state.seccion == 'home':
 
     # Lógica para cargar y mostrar el icono de Creative Commons
     try:
-        with open("cc_icon.png", "rb") as f:
-            import base64
+        cc_icon_path = Path(__file__).parent / "cc_icon.png"
+        with open(cc_icon_path, "rb") as f:
             img_data = base64.b64encode(f.read()).decode()
         st.markdown(
             f'<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">'
