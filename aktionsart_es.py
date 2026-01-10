@@ -54,8 +54,8 @@ IRREGULARES = {
     "leer": {"ger": "leyendo", "pp": "leído"}, "traer": {"ger": "trayendo", "pp": "traído"},
     "caer": {"ger": "cayendo", "pp": "caído"}, "oír": {"ger": "oyendo", "pp": "oído"},
     "pedir": {"ger": "pidiendo"}, "sentir": {"ger": "sintiendo"},
-    "mentir": {"ger": "mintiendo"}, "seguír": {"ger": "siguiendo"},
-    "conseguír": {"ger": "consiguiendo"}, "perseguir": {"ger": "persiguiendo"},
+    "mentir": {"ger": "mintiendo"}, "seguir": {"ger": "siguiendo"},
+    "conseguir": {"ger": "consiguiendo"}, "perseguir": {"ger": "persiguiendo"},
     "servir": {"ger": "sirviendo"}, "vestir": {"ger": "vistiendo"},
     "repetir": {"ger": "repitiendo"}, "elegir": {"ger": "elegiendo"},
     "corregir": {"ger": "corrigiendo"}, "reír": {"ger": "riendo"},
@@ -440,7 +440,7 @@ def mostrar_detector_es():
                 f"<i>{p.capitalize()} durante una hora.</i>",
                 f"<i>{p.capitalize()} durante un mes.</i>"
             ])
-            st.write("¿Es alguna de estas una expresión posible?<br>(Si la expresión tiene sentido iterativo o de inminencia, responde que **no**).", unsafe_allow_html=True)
+            st.write("¿Es alguna de estas una expresión posible? **(Si la expresión tiene sentido iterativo o de inminencia, responde que no)**.", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             if c1.button("Sí", use_container_width=True):
                 st.session_state.rasgos.puntual = False
@@ -498,6 +498,7 @@ def mostrar_detector_es():
             if c3.button("Obtener Estructura Lógica", use_container_width=True):
                 st.session_state.ls_akt = label_resultado.lower()
                 st.session_state.ls_oracion = st.session_state.oracion_original
+                st.session_state.ls_es_dinamico = st.session_state.rasgos.dinamico
                 st.session_state.seccion = 'ls'
                 st.rerun()
 

@@ -598,20 +598,21 @@ def ir_a_intencionalidad():
     st.session_state.ls_paso = 'intencionalidad'
     st.rerun()
 
-def _reiniciar_callback():
+def reiniciar_analisis():
+    """Limpia todo el rastro del análisis de LS y resetea el paso inicial."""
+    # 1. Identificar todas las llaves de LS
     keys_to_delete = [k for k in list(st.session_state.keys()) if k.startswith('ls_')]
+    
+    # 2. Eliminarlas del estado de sesión
     for key in keys_to_delete:
         del st.session_state[key]
-
-def reiniciar_ls():
-    keys_to_delete = [k for k in list(st.session_state.keys()) if k.startswith('ls_')]
-    for key in keys_to_delete:
-        del st.session_state[key]
-    st.rerun()
+    
+    # 3. Asegurar que la dinamicidad heredada se limpie
+    st.session_state.ls_es_dinamico = None
 
 def botones_navegacion():
     st.write("---")
-    st.button("Iniciar nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=_reiniciar_callback)
+    st.button("Iniciar nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=reiniciar_analisis)
 
 def lista_elegante(items: list):
     html_items = ""
@@ -854,7 +855,7 @@ def mostrar_asistente_ls():
         st.session_state.ls_pred = ''
         st.session_state.ls_locus = 'Ø'
         st.session_state.ls_complemento_regimen = ''  # NUEVO
-        st.session_state.ls_es_dinamico = None
+        st.session_state.ls_es_dinamico = st.session_state.get('ls_es_dinamico', None)
         st.session_state.ls_estructura = ''
         st.session_state.ls_estructura_pre_do = ''  # NUEVO: antes de DO
         st.session_state.ls_estructura_con_do = ''  # NUEVO: después de DO
@@ -893,7 +894,7 @@ def mostrar_asistente_ls():
                         "Iniciar un nuevo análisis", 
                         use_container_width=True, 
                         key="reset_desde_inicio",
-                        on_click=_reiniciar_callback
+                        on_click=reiniciar_analisis
                     )
             else:
                 with st.form(key="form_inicio_ls"):
@@ -1108,6 +1109,9 @@ def mostrar_asistente_ls():
 
         # --- PASO: DINAMICIDAD ---
         elif st.session_state.ls_paso == 'dinamicidad':
+            if st.session_state.get('ls_es_dinamico') is not None:
+                ir_a('caso_especial_check')
+            
             st.markdown("#### **Verificación de dinamicidad**")
             oracion = st.session_state.ls_oracion
             AKT = st.session_state.ls_akt
@@ -2788,7 +2792,7 @@ def mostrar_asistente_ls():
                 ir_a('preguntar_operadores')
             
             st.write("---")
-            st.button("Analizar otra cláusula", use_container_width=True, key="otra", on_click=_reiniciar_callback)
+            st.button("Analizar otra cláusula", use_container_width=True, key="otra", on_click=reiniciar_analisis)
 
         # --- PREGUNTAR OPERADORES ---
         elif st.session_state.ls_paso == 'preguntar_operadores':
@@ -2809,7 +2813,7 @@ def mostrar_asistente_ls():
             c2.button("No, finalizar", use_container_width=True, key="op_no", on_click=_op_no)
             
             st.write("---")
-            st.button("Analizar otra cláusula", use_container_width=True, key="otra_preop", on_click=_reiniciar_callback)
+            st.button("Analizar otra cláusula", use_container_width=True, key="otra_preop", on_click=reiniciar_analisis)
 
         # --- SELECCIONAR PREDICADOS A MODIFICAR ---
         elif st.session_state.ls_paso == 'seleccionar_predicados':
@@ -3042,7 +3046,7 @@ def mostrar_asistente_ls():
 
             st.write("---")
             c1, c2 = st.columns(2)
-            c1.button("Analizar otra cláusula", use_container_width=True, key="otra_final", on_click=_reiniciar_callback)
+            c1.button("Analizar otra cláusula", use_container_width=True, key="otra_final", on_click=reiniciar_analisis)
             
             def _volver_a_aktionsart():
                 # Limpiar variables de ls
