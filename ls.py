@@ -472,6 +472,29 @@ def generar_imagen_ls(ls_html: str) -> bytes:
     buf.seek(0)
     return buf.getvalue()
 
+def extraer_predicados_de_ls(ls_html: str) -> list:
+    """Extrae los predicados (en negrita) de la estructura lógica, excluyendo palabras reservadas de RRG."""
+    patron = r"<b>([^<]+)'</b>"
+    matches = re.findall(patron, ls_html)
+    # Eliminar duplicados manteniendo orden, excluyendo palabras reservadas
+    vistos = set()
+    unicos = []
+    for m in matches:
+        m_lower = m.lower()
+        # Verificar que no sea palabra reservada (comparar también sin puntos)
+        m_base = m_lower.split('.')[0]
+        if m not in vistos and m_lower not in RRG_KEYWORDS and m_base not in RRG_KEYWORDS:
+            vistos.add(m)
+            unicos.append(m)
+    return unicos
+
+def reemplazar_predicado_en_ls(ls_html: str, pred_viejo: str, pred_nuevo: str) -> str:
+    """Reemplaza un predicado por otro en la estructura lógica."""
+    # Reemplazar <b>pred_viejo'</b> por <b>pred_nuevo'</b>
+    patron = f"<b>{re.escape(pred_viejo)}'</b>"
+    reemplazo = f"<b>{pred_nuevo}'</b>"
+    return re.sub(patron, reemplazo, ls_html)
+
 # --- 4. FUNCIONES DE GENERACIÓN DE ESTRUCTURAS LÓGICAS ---
 
 def generar_estructura_no_causativa(x, y, locus, pred, operador, AKT):
@@ -932,52 +955,155 @@ def mostrar_asistente_ls():
         # --- PASO: ARGUMENTOS ---
         elif st.session_state.ls_paso == 'argumentos':
             st.markdown("#### **Identificación de argumentos**")
-            st.info("Selecciona los **argumentos** presentes en la cláusula. Luego escríbelos si se trata de constituyentes sintácticos.")
-            st.warning("Asegúrate de que el complemento indirecto no se trate de un **dativo ético**.")
-            st.warning("Si la información se expresa solo en un afijo o un clítico, ingresa sus rasgos (ej.: *1sg*, *3pl*).")
+            st.info(f"Selecciona los argumentos presentes en la cláusula **{st.session_state.ls_oracion}** (sintácticos o morfológicos).")
+            st.warning("Si hay argumentos sintácticos, privilegia estos.")
             
-            with st.form(key="form_args"):
+            # Inicializar estados si no existen
+            if 'ls_arg_sujeto' not in st.session_state:
+                st.session_state.ls_arg_sujeto = False
+            if 'ls_arg_cd' not in st.session_state:
+                st.session_state.ls_arg_cd = False
+            if 'ls_arg_ci' not in st.session_state:
+                st.session_state.ls_arg_ci = False
+            if 'ls_tipo_sujeto' not in st.session_state:
+                st.session_state.ls_tipo_sujeto = None
+            if 'ls_tipo_cd' not in st.session_state:
+                st.session_state.ls_tipo_cd = None
+            if 'ls_tipo_ci' not in st.session_state:
+                st.session_state.ls_tipo_ci = None
+            
+            # Opciones de rasgos
+            RASGOS_OPCIONES = {
+                "Primera persona singular": "1sg",
+                "Segunda persona singular": "2sg",
+                "Tercera persona singular": "3sg",
+                "Primera persona plural": "1pl",
+                "Segunda persona plural": "2pl",
+                "Tercera persona plural": "3pl"
+            }
+
+            # --- SUJETO ---
+            with st.container(border=True):
+                st.session_state.ls_arg_sujeto = st.checkbox("Sujeto", value=st.session_state.ls_arg_sujeto, key="chk_sujeto")
+            
+                if st.session_state.ls_arg_sujeto:
+                    st.session_state.ls_tipo_sujeto = st.radio(
+                        "Tipo de expresión del sujeto",
+                        options=["constituyente", "afijo"],
+                        format_func=lambda x: "La información se expresa en un constituyente sintáctico" if x == "constituyente" else "La información se expresa únicamente en un afijo o clítico",
+                        key="radio_sujeto",
+                        index=0 if st.session_state.ls_tipo_sujeto == "constituyente" else (1 if st.session_state.ls_tipo_sujeto == "afijo" else None),
+                        label_visibility="collapsed"
+                    )
+                
+                    if st.session_state.ls_tipo_sujeto == "constituyente":
+                        st.session_state.ls_x_input = st.text_input(
+                            "Sujeto",
+                            value=st.session_state.get('ls_x_input', ''),
+                            placeholder="Escribe el sujeto",
+                            key="input_sujeto",
+                            label_visibility="collapsed"
+                        )
+                    elif st.session_state.ls_tipo_sujeto == "afijo":
+                        st.write("Escoge los rasgos pertinentes:")
+                        rasgos_sujeto = st.selectbox(
+                            "Rasgos del sujeto",
+                            options=list(RASGOS_OPCIONES.keys()),
+                            key="select_sujeto",
+                            label_visibility="collapsed"
+                        )
+                        st.session_state.ls_x_input = RASGOS_OPCIONES[rasgos_sujeto]
+           
+            # --- COMPLEMENTO DIRECTO ---
+            with st.container(border=True): 
+                st.session_state.ls_arg_cd = st.checkbox("Complemento directo", value=st.session_state.ls_arg_cd, key="chk_cd")
+            
+                if st.session_state.ls_arg_cd:
+                    st.session_state.ls_tipo_cd = st.radio(
+                        "Tipo de expresión del CD",
+                        options=["constituyente", "afijo"],
+                        format_func=lambda x: "La información se expresa en un constituyente sintáctico" if x == "constituyente" else "La información se expresa únicamente en un afijo o clítico",
+                        key="radio_cd",
+                        index=0 if st.session_state.ls_tipo_cd == "constituyente" else (1 if st.session_state.ls_tipo_cd == "afijo" else None),
+                        label_visibility="collapsed"
+                    )
+                
+                    if st.session_state.ls_tipo_cd == "constituyente":
+                        st.session_state.ls_y_input = st.text_input(
+                            "CD",
+                            value=st.session_state.get('ls_y_input', ''),
+                            placeholder="Escribe el complemento directo sin «a», si es pertinente",
+                            key="input_cd",
+                            label_visibility="collapsed"
+                        )
+                    elif st.session_state.ls_tipo_cd == "afijo":
+                        st.write("Escoge los rasgos pertinentes:")
+                        rasgos_cd = st.selectbox(
+                            "Rasgos del CD",
+                            options=list(RASGOS_OPCIONES.keys()),
+                            key="select_cd",
+                            label_visibility="collapsed"
+                        )
+                        st.session_state.ls_y_input = RASGOS_OPCIONES[rasgos_cd]
+              
+            # --- COMPLEMENTO INDIRECTO ---
+            with st.container(border=True):
+                st.session_state.ls_arg_ci = st.checkbox("Complemento indirecto", value=st.session_state.ls_arg_ci, key="chk_ci")
+            
+                if st.session_state.ls_arg_ci:
+                    st.session_state.ls_tipo_ci = st.radio(
+                        "Tipo de expresión del CI",
+                        options=["constituyente", "afijo"],
+                        format_func=lambda x: "La información se expresa en un constituyente sintáctico" if x == "constituyente" else "La información se expresa únicamente en un afijo o clítico",
+                        key="radio_ci",
+                        index=0 if st.session_state.ls_tipo_ci == "constituyente" else (1 if st.session_state.ls_tipo_ci == "afijo" else None),
+                        label_visibility="collapsed"
+                    )
+                
+                    if st.session_state.ls_tipo_ci == "constituyente":
+                        st.session_state.ls_z_input = st.text_input(
+                            "CI",
+                            value=st.session_state.get('ls_z_input', ''),
+                            placeholder="Escribe el complemento indirecto sin «a», si es pertinente",
+                            key="input_ci",
+                            label_visibility="collapsed"
+                        )
+                    elif st.session_state.ls_tipo_ci == "afijo":
+                        st.write("Escoge los rasgos pertinentes:")
+                        rasgos_ci = st.selectbox(
+                            "Rasgos del CI",
+                            options=list(RASGOS_OPCIONES.keys()),
+                            key="select_ci",
+                            label_visibility="collapsed"
+                        )
+                        st.session_state.ls_z_input = RASGOS_OPCIONES[rasgos_ci]
+            
+            # Botón para avanzar
+            def _guardar_argumentos():
                 # Sujeto
-                col1, col2 = st.columns([1, 3])
-                with col1:
-                    tiene_sujeto = st.checkbox("Sujeto", value=bool(st.session_state.ls_x and st.session_state.ls_x != 'Ø'))
-                with col2:
-                    x = st.text_input(
-                        "Sujeto", 
-                        value=st.session_state.ls_x if st.session_state.ls_x and st.session_state.ls_x != 'Ø' else "", 
-                        label_visibility="collapsed",
-                        placeholder="Escribe el sujeto"
-                    )
+                if st.session_state.ls_arg_sujeto:
+                    valor = st.session_state.get('ls_x_input', '').strip()
+                    st.session_state.ls_x = valor if valor else 'Ø'
+                else:
+                    st.session_state.ls_x = 'Ø'
                 
-                # Complemento directo
-                col1, col2 = st.columns([1, 3])
-                with col1:
-                    tiene_cd = st.checkbox("Complemento directo", value=bool(st.session_state.ls_y and st.session_state.ls_y != 'Ø'))
-                with col2:
-                    y = st.text_input(
-                        "CD", 
-                        value=st.session_state.ls_y if st.session_state.ls_y and st.session_state.ls_y != 'Ø' else "", 
-                        label_visibility="collapsed",
-                        placeholder="Escribe el complemento directo sin «a», si es pertinente"
-                    )
+                # CD
+                if st.session_state.ls_arg_cd:
+                    valor = st.session_state.get('ls_y_input', '').strip()
+                    st.session_state.ls_y = valor if valor else 'Ø'
+                else:
+                    st.session_state.ls_y = 'Ø'
                 
-                # Complemento indirecto
-                col1, col2 = st.columns([1, 3])
-                with col1:
-                    tiene_ci = st.checkbox("Complemento indirecto", value=bool(st.session_state.ls_z and st.session_state.ls_z != 'Ø'))
-                with col2:
-                    z = st.text_input(
-                        "CI", 
-                        value=st.session_state.ls_z if st.session_state.ls_z and st.session_state.ls_z != 'Ø' else "", 
-                        label_visibility="collapsed",
-                        placeholder="Escribe el complemento indirecto sin «a», si es pertinente"
-                    )
+                # CI
+                if st.session_state.ls_arg_ci:
+                    valor = st.session_state.get('ls_z_input', '').strip()
+                    st.session_state.ls_z = valor if valor else 'Ø'
+                else:
+                    st.session_state.ls_z = 'Ø'
                 
-                if st.form_submit_button("Siguiente", use_container_width=True):
-                    st.session_state.ls_x = x.strip() if tiene_sujeto and x.strip() else 'Ø'
-                    st.session_state.ls_y = y.strip() if tiene_cd and y.strip() else 'Ø'
-                    st.session_state.ls_z = z.strip() if tiene_ci and z.strip() else 'Ø'
-                    ir_a('dinamicidad')
+                st.session_state.ls_paso = 'dinamicidad'
+            
+            st.button("Siguiente", use_container_width=True, key="btn_args_siguiente", on_click=_guardar_argumentos)
             botones_navegacion()
 
         # --- PASO: DINAMICIDAD ---
@@ -1076,10 +1202,7 @@ def mostrar_asistente_ls():
             # Verificar verbos tipo "doler/gustar" y dativo experimentante
             if "causativ" not in AKT and AKT != "realización activa" and x != "Ø" and y == "Ø" and z != "Ø":
                 st.session_state.ls_caso_actual = 'doler_gustar'
-                if AKT != "actividad":
-                    ir_a('pregunta_dativo_experimentante')
-                else:
-                    ir_a('pregunta_doler_gustar')
+                ir_a('pregunta_filtro_se')
             # Verificar "hacer" meteorológico
             elif x == "Ø" and y != "Ø":
                 st.session_state.ls_caso_actual = 'hacer_meteo'
@@ -1105,18 +1228,16 @@ def mostrar_asistente_ls():
                 ir_a('caso_locativo')
 
         # --- PREGUNTAS ESPECÍFICAS PARA CASOS ESPECIALES ---
-        # --- PREGUNTA DATIVO EXPERIMENTANTE ---
-        elif st.session_state.ls_paso == 'pregunta_dativo_experimentante':
+        # --- PREGUNTA FILTRO SE (distingue dativo experimentante de doler/gustar) ---
+        elif st.session_state.ls_paso == 'pregunta_filtro_se':
             oracion = st.session_state.ls_oracion
-            x = st.session_state.ls_x
-            z = st.session_state.ls_z
-            st.info(f"""¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a alguno de estos ejemplos?
+            st.info(f"""¿La oración **{oracion[0].upper() + oracion[1:]}** contiene la partícula **se** (como en *se me/te/le*)?
 
-• *Se me/te/le [verbo] {x}*  
-• *A {z} se me/te/le [verbo] {x}*""")
+• Ejemplos con **se**: *Se me perdió el reloj*, *A Pepe se le olvidaron las llaves*  
+• Ejemplos sin **se**: *Te duele la cabeza*, *A Ana le gustan los helados*""")
             c1, c2 = st.columns(2)
-            c1.button("Sí", use_container_width=True, key="dat_exp_si", on_click=crear_callback_ir_a('pred_dativo_experimentante'))
-            c2.button("No", use_container_width=True, key="dat_exp_no", on_click=crear_callback_ir_a('pregunta_doler_gustar'))
+            c1.button("Sí, lleva SE", use_container_width=True, key="filtro_se_si", on_click=crear_callback_ir_a('pred_dativo_experimentante'))
+            c2.button("No lleva SE", use_container_width=True, key="filtro_se_no", on_click=crear_callback_ir_a('pregunta_doler_gustar'))
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'pred_dativo_experimentante':
@@ -1166,7 +1287,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_doler_gustar':
             x = st.session_state.ls_x
             z = st.session_state.ls_z
-            st.info(f"¿**{x[0].upper() + x[1:]}** está situado en alguna parte de **{z}**?")
+            st.info(f"¿**{x[0].upper() + x[1:]}** es una parte de **{z}**?")
             c1, c2 = st.columns(2)
             
             def _dg_si1():
@@ -1185,7 +1306,10 @@ def mostrar_asistente_ls():
             z = st.session_state.ls_z
             x = st.session_state.ls_x
             oracion = st.session_state.ls_oracion
-            st.info(f"¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a *A {z} le [verbo] {x}*?")
+            st.info(f"""¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a alguno de estos ejemplos?
+
+• *Me/te/le [verbo] {x}*  
+• *A {z} me/te/le [verbo] {x}*""")
             c1, c2 = st.columns(2)
             
             def _dg2_si():
@@ -1830,7 +1954,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_lugar_tipo':
             locus = st.session_state.ls_locus
-            st.info(f"¿*{locus[0].upper() + locus[1:]}* es (1) la procedencia o (2) el destino?")
+            st.info(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
             c1, c2 = st.columns(2)
             c1.button("1. Procedencia", use_container_width=True, key="proc", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="1"))
             c2.button("2. Destino", use_container_width=True, key="dest", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="2"))
@@ -2646,21 +2770,157 @@ def mostrar_asistente_ls():
             
             st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
             
+            # Extraer predicados modificables
+            predicados = extraer_predicados_de_ls(ls_traducida)
+            st.session_state.ls_predicados_extraidos = predicados
+            
+            st.write("---")
+            
+            # Informar sobre traducción automática y ofrecer corrección
+            if predicados:
+                st.warning("El programa traduce automáticamente los predicados del español al inglés, pero puede cometer errores en casos de ambigüedad léxica.")
+                st.info("¿Quieres modificar alguno de los predicados?")
+                
+                c1, c2 = st.columns(2)
+                c1.button("Sí, modificar predicados", use_container_width=True, key="mod_pred_si", on_click=crear_callback_ir_a('seleccionar_predicados'))
+                c2.button("No, continuar", use_container_width=True, key="mod_pred_no", on_click=crear_callback_ir_a('preguntar_operadores'))
+            else:
+                ir_a('preguntar_operadores')
+            
+            st.write("---")
+            st.button("Analizar otra cláusula", use_container_width=True, key="otra", on_click=_reiniciar_callback)
+
+        # --- PREGUNTAR OPERADORES ---
+        elif st.session_state.ls_paso == 'preguntar_operadores':
+            st.markdown("### Estructura lógica generada")
+            
+            ls_traducida = st.session_state.ls_estructura_traducida
+            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            
             st.write("---")
             st.info("¿Quieres añadir operadores a la estructura lógica?")
             c1, c2 = st.columns(2)
             
             def _op_no():
-                # Guardar la estructura traducida como final
                 st.session_state.ls_estructura_final = st.session_state.ls_estructura_traducida
                 st.session_state.ls_paso = 'final'
             
             c1.button("Sí, añadir operadores", use_container_width=True, key="op_si", on_click=crear_callback_ir_a('seleccionar_operadores'))
             c2.button("No, finalizar", use_container_width=True, key="op_no", on_click=_op_no)
-
+            
             st.write("---")
-            c1, c2 = st.columns(2)
-            c1.button("Analizar otra cláusula", use_container_width=True, key="otra", on_click=_reiniciar_callback)
+            st.button("Analizar otra cláusula", use_container_width=True, key="otra_preop", on_click=_reiniciar_callback)
+
+        # --- SELECCIONAR PREDICADOS A MODIFICAR ---
+        elif st.session_state.ls_paso == 'seleccionar_predicados':
+            st.markdown("### Corrección de predicados")
+            
+            ls_traducida = st.session_state.ls_estructura_traducida
+            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            
+            st.write("---")
+            
+            predicados = st.session_state.ls_predicados_extraidos
+            
+            if len(predicados) == 1:
+                # Solo un predicado: preguntar directamente
+                pred = predicados[0]
+                st.info(f"El predicado traducido es **{pred}**. ¿Quieres modificarlo?")
+                
+                with st.form(key="form_corregir_unico"):
+                    nuevo_valor = st.text_input(
+                        "Nuevo valor del predicado",
+                        value=pred,
+                        placeholder="Escribe el predicado corregido",
+                        key="input_pred_unico"
+                    )
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.form_submit_button("Guardar cambio", use_container_width=True):
+                            if nuevo_valor.strip() and nuevo_valor.strip() != pred:
+                                ls_corregida = reemplazar_predicado_en_ls(ls_traducida, pred, nuevo_valor.strip())
+                                st.session_state.ls_estructura_traducida = ls_corregida
+                            ir_a('preguntar_operadores')
+                    with col2:
+                        if st.form_submit_button("Cancelar", use_container_width=True):
+                            ir_a('preguntar_operadores')
+            else:
+                # Múltiples predicados: mostrar lista con checkboxes
+                st.info("Selecciona los predicados que quieres modificar:")
+                
+                # Inicializar estado para checkboxes
+                if 'ls_preds_a_modificar' not in st.session_state:
+                    st.session_state.ls_preds_a_modificar = []
+                
+                with st.container(border=True):
+                    preds_seleccionados = []
+                    for i, pred in enumerate(predicados):
+                        if st.checkbox(f"**{pred}**", key=f"chk_pred_{i}"):
+                            preds_seleccionados.append(pred)
+                
+                col1, col2 = st.columns(2)
+                
+                def _continuar_con_seleccion():
+                    st.session_state.ls_preds_a_modificar = preds_seleccionados
+                    if preds_seleccionados:
+                        st.session_state.ls_pred_edit_index = 0
+                        st.session_state.ls_paso = 'corregir_predicados'
+                    else:
+                        st.session_state.ls_paso = 'preguntar_operadores'
+                
+                col1.button("Continuar", use_container_width=True, key="btn_sel_preds", on_click=_continuar_con_seleccion)
+                col2.button("Cancelar", use_container_width=True, key="btn_cancel_preds", on_click=crear_callback_ir_a('preguntar_operadores'))
+            
+            botones_navegacion()
+
+        # --- CORREGIR PREDICADOS (uno por uno) ---
+        elif st.session_state.ls_paso == 'corregir_predicados':
+            st.markdown("### Corrección de predicados")
+            
+            ls_traducida = st.session_state.ls_estructura_traducida
+            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            
+            st.write("---")
+            
+            preds_a_modificar = st.session_state.ls_preds_a_modificar
+            indice = st.session_state.get('ls_pred_edit_index', 0)
+            
+            if indice < len(preds_a_modificar):
+                pred_actual = preds_a_modificar[indice]
+                total = len(preds_a_modificar)
+                
+                st.info(f"Predicado {indice + 1} de {total}: **{pred_actual}**")
+                
+                with st.form(key=f"form_corregir_{indice}"):
+                    nuevo_valor = st.text_input(
+                        "Escribe el predicado corregido",
+                        value=pred_actual,
+                        placeholder="Escribe el predicado corregido",
+                        key=f"input_pred_{indice}",
+                        label_visibility="collapsed"
+                    )
+                    
+                    if st.form_submit_button("Guardar y continuar", use_container_width=True):
+                        # Aplicar el cambio si es diferente
+                        if nuevo_valor.strip() and nuevo_valor.strip() != pred_actual:
+                            ls_corregida = reemplazar_predicado_en_ls(
+                                st.session_state.ls_estructura_traducida, 
+                                pred_actual, 
+                                nuevo_valor.strip()
+                            )
+                            st.session_state.ls_estructura_traducida = ls_corregida
+                        
+                        # Avanzar al siguiente predicado o terminar
+                        if indice + 1 < len(preds_a_modificar):
+                            st.session_state.ls_pred_edit_index = indice + 1
+                            st.rerun()
+                        else:
+                            ir_a('preguntar_operadores')
+            else:
+                ir_a('preguntar_operadores')
+            
+            botones_navegacion()
 
         # --- SELECCIÓN DE OPERADORES ---
         elif st.session_state.ls_paso == 'seleccionar_operadores':
