@@ -612,7 +612,7 @@ def reiniciar_analisis():
 
 def botones_navegacion():
     st.write("---")
-    st.button("Iniciar nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=reiniciar_analisis)
+    st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=reiniciar_analisis)
 
 def lista_elegante(items: list):
     html_items = ""
@@ -891,7 +891,7 @@ def mostrar_asistente_ls():
                 
                 with col_reset:
                     st.button(
-                        "Iniciar un nuevo análisis", 
+                        "↺ Iniciar un nuevo análisis", 
                         use_container_width=True, 
                         key="reset_desde_inicio",
                         on_click=reiniciar_analisis
@@ -1702,7 +1702,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'caso_causativo_sensacion_check':
             AKT = st.session_state.ls_akt
             if AKT == "estado causativo":
-                pregunta = "¿El estado es un tipo de sensación o sentimiento (ej.: *miedo*, *amor*, *frío*)?"
+                pregunta = "¿El estado resultante es un tipo de sensación o sentimiento (ej.: *miedo*, *amor*, *frío*)?"
             else:
                 pregunta = "¿El evento resultante involucra una sensación o sentimiento (ej.: *miedo*, *amor*, *frío*)?"
             st.info(pregunta)
@@ -1720,6 +1720,10 @@ def mostrar_asistente_ls():
             
             # Determinar el experimentante: z si existe, sino y
             experimentante = z if z != "Ø" else y
+            
+            # Marca [MR1]: el experimentante es CI (dativo) y no hay CD
+            # Indica que el experimentante dativo no toma undergoer
+            marca_mr1 = (z != "Ø" and y == "Ø")
 
             with st.form(key="form_caus_sens"):
                 st.info("Escribe esa sensación o sentimiento (ej.: *miedo*, *amor*, *frío*):")
@@ -1731,6 +1735,8 @@ def mostrar_asistente_ls():
                         ls = f"[do' ({x}, Ø)] CAUSE [{operador} feel' ({experimentante}, [{pred}'])]"
                     else:
                         ls = f"[do' ({x}, Ø)] CAUSE [feel' ({experimentante}, [{pred}'])]"
+                    if marca_mr1:
+                        ls += " [MR1]"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2792,7 +2798,7 @@ def mostrar_asistente_ls():
                 ir_a('preguntar_operadores')
             
             st.write("---")
-            st.button("Analizar otra cláusula", use_container_width=True, key="otra", on_click=reiniciar_analisis)
+            st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key="otra", on_click=reiniciar_analisis)
 
         # --- PREGUNTAR OPERADORES ---
         elif st.session_state.ls_paso == 'preguntar_operadores':
@@ -2813,7 +2819,7 @@ def mostrar_asistente_ls():
             c2.button("No, finalizar", use_container_width=True, key="op_no", on_click=_op_no)
             
             st.write("---")
-            st.button("Analizar otra cláusula", use_container_width=True, key="otra_preop", on_click=reiniciar_analisis)
+            st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key="otra_preop", on_click=reiniciar_analisis)
 
         # --- SELECCIONAR PREDICADOS A MODIFICAR ---
         elif st.session_state.ls_paso == 'seleccionar_predicados':
