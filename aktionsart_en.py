@@ -442,8 +442,9 @@ def mostrar_detector_en():
                 clause = st.text_input("Clause:")
                 if st.form_submit_button("Start the analysis"):
                     if clause:
-                        st.session_state.original_clause = clause
-                        st.session_state.current_clause = clause
+                        clause_limpia = clause.strip().rstrip('.')
+                        st.session_state.original_clause = clause_limpia
+                        st.session_state.current_clause = clause_limpia
                         go_to('causativity')
 
         elif st.session_state.akt_step == 'causativity':

@@ -273,8 +273,9 @@ def mostrar_detector_es():
                 oracion = st.text_input("Cláusula:")
                 if st.form_submit_button("Comenzar el análisis"):
                     if oracion:
-                        st.session_state.oracion_original = oracion
-                        st.session_state.oracion_actual = oracion
+                        oracion_limpia = oracion.strip().rstrip('.')
+                        st.session_state.oracion_original = oracion_limpia
+                        st.session_state.oracion_actual = oracion_limpia
                         ir_a('causatividad')
 
         elif st.session_state.akt_paso == 'causatividad':
