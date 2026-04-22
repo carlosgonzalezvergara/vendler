@@ -9,7 +9,7 @@ from pathlib import Path
 # Configuración de la página (Sin barra lateral)
 st.set_page_config(
     page_title="Vendler - RRG Suite", 
-    page_icon="🏛️",
+    page_icon="favicon.png",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
