@@ -1471,7 +1471,7 @@ def mostrar_asistente_ls():
                     if st.form_submit_button("Generar estructura"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
-                        ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}) ∧ FIN be-LOC' ({z}, {x})"
+                        ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}) ∧ FIN INGR be-LOC' ({z}, {x})"
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
             else:
@@ -1524,7 +1524,7 @@ def mostrar_asistente_ls():
                 y = st.session_state.ls_y
                 z = st.session_state.ls_z
                 pred = st.session_state.ls_pred
-                ls = f"[do' ({x}, [{pred}' ({x}, {y})])] CAUSE [do' ({z}, [know' ({z}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})]"
+                ls = f"[do' ({x}, [{pred}' ({x}, {y})])] CAUSE [do' ({z}, [know' ({z}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN INGR exist' ({y})]"
                 st.session_state.ls_estructura = ls
                 st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
                 st.session_state.ls_paso = 'intencionalidad'
@@ -1552,15 +1552,15 @@ def mostrar_asistente_ls():
             y_clean = "something" if y in ["Ø", "0"] else y.replace(" ", ".")
             
             if pred in VERBOS_DICCION["preguntar"]:
-                ls = f"[do' ({x}, [express.question' ({x}, pregunta)]) ∧ PROC being.created' (pregunta) ∧ FIN exist' (pregunta)] PURP [do' ({z}, [express.something' ({z}, {y})])]"
+                ls = f"[do' ({x}, [express.question' ({x}, pregunta)]) ∧ PROC being.created' (pregunta) ∧ FIN INGR exist' (pregunta)] PURP [do' ({z}, [express.something' ({z}, {y})])]"
             elif pred in VERBOS_DICCION["agradecer"]:
                 arg_inc = VERBOS_DICCION["agradecer"].get(pred, pred)
-                ls = f"[do' ({x}, [express.{arg_inc}' ({x}, {y})]) ∧ PROC being.created' ({arg_inc}) ∧ FIN exist' ({arg_inc})] PURP [know' ({z}, {arg_inc} por {y})]"
+                ls = f"[do' ({x}, [express.{arg_inc}' ({x}, {y})]) ∧ PROC being.created' ({arg_inc}) ∧ FIN INGR exist' ({arg_inc})] PURP [know' ({z}, {arg_inc} por {y})]"
             elif pred in VERBOS_DICCION["bendecir"]:
                 arg_inc = VERBOS_DICCION["bendecir"].get(pred, pred)
-                ls = f"[do' ({x}, [express.{arg_inc}' ({x}, {y})]) ∧ PROC being.created' ({arg_inc}) ∧ FIN exist' ({arg_inc})] PURP [know' ({z}, {arg_inc} de {y})]"
+                ls = f"[do' ({x}, [express.{arg_inc}' ({x}, {y})]) ∧ PROC being.created' ({arg_inc}) ∧ FIN INGR exist' ({arg_inc})] PURP [know' ({z}, {arg_inc} de {y})]"
             else:
-                ls = f"[do' ({x}, [express.something' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})] PURP [know' ({z}, {y})]"
+                ls = f"[do' ({x}, [express.something' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN INGR exist' ({y})] PURP [know' ({z}, {y})]"
             
             st.session_state.ls_estructura = ls
             ir_a_intencionalidad()
@@ -2483,12 +2483,12 @@ def mostrar_asistente_ls():
                     if st.form_submit_button("Generar estructura"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
-                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})]"
+                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN INGR exist' ({y})]"
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
             else:
                 pred = st.session_state.ls_pred
-                ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN exist' ({y})"
+                ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN INGR exist' ({y})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             botones_navegacion()
@@ -2510,7 +2510,7 @@ def mostrar_asistente_ls():
                         ir_a('ra_consumo_caus_2')
             else:
                 pred = st.session_state.ls_pred
-                ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.consumed' ({y}) ∧ FIN consumed' ({y})"
+                ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.consumed' ({y}) ∧ FIN INGR consumed' ({y})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             botones_navegacion()
@@ -2530,7 +2530,7 @@ def mostrar_asistente_ls():
                     if st.form_submit_button("Generar estructura"):
                         pred = pred.lower().replace(" ", ".")
                         alimento = alimento.lower().replace(" ", ".")
-                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y}, {alimento})]) ∧ PROC being.consumed' ({alimento}) ∧ FIN consumed' ({alimento})]"
+                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y}, {alimento})]) ∧ PROC being.consumed' ({alimento}) ∧ FIN INGR consumed' ({alimento})]"
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
             else:
@@ -2539,7 +2539,7 @@ def mostrar_asistente_ls():
                     pred = st.text_input("infinitivo", label_visibility="collapsed")
                     if st.form_submit_button("Generar estructura"):
                         pred = pred.lower().replace(" ", ".")
-                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.consumed' ({y}) ∧ FIN consumed' ({y})]"
+                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.consumed' ({y}) ∧ FIN INGR consumed' ({y})]"
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
             botones_navegacion()
@@ -2574,11 +2574,11 @@ def mostrar_asistente_ls():
                 # es una constante propuesta por Claude, sin verificar contra
                 # ninguna fuente publicada; cámbiala aquí si encuentras la forma
                 # canónica correspondiente.
-                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN be-at.far.side.of' ({y}, {x})"
+                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN INGR be-at.far.side.of' ({y}, {x})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             elif locus != "Ø" and y != "Ø":
-                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN be-LOC' ({locus}, {x})"
+                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ INGR FIN be-LOC' ({locus}, {x})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             else:
@@ -2608,12 +2608,12 @@ def mostrar_asistente_ls():
                     if st.form_submit_button("Generar estructura"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
-                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC covering.path.distance' ({y}) ∧ FIN {fin_loc} ({locus}, {y})]"
+                        ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC covering.path.distance' ({y}) ∧ FIN INGR {fin_loc} ({locus}, {y})]"
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
             else:
                 pred = st.session_state.ls_pred
-                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}) ∧ FIN {fin_loc} ({locus}, {x})"
+                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}) ∧ FIN INGR {fin_loc} ({locus}, {x})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             botones_navegacion()
@@ -2635,7 +2635,7 @@ def mostrar_asistente_ls():
                             pred = pred.lower().replace(" ", ".")
                             participio = infinitivo_a_participio(pred).replace(" ", ".")
                             st.session_state.ls_pred = pred
-                            ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})]"
+                            ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN INGR {participio}' ({y})]"
                             st.session_state.ls_estructura = ls
                             ir_a_intencionalidad()
                 else:
@@ -2644,7 +2644,7 @@ def mostrar_asistente_ls():
                 if y != "Ø":
                     pred = st.session_state.ls_pred
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
-                    ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})"
+                    ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN INGR {participio}' ({y})"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
                 else:
@@ -2675,7 +2675,7 @@ def mostrar_asistente_ls():
                     prep = prep.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     st.session_state.ls_complemento_regimen = suplemento
-                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}.{prep}' ({y}, {suplemento})]) ∧ PROC being.{participio}.{prep}' ({y}, {suplemento}) ∧ FIN {participio}.{prep}' ({y}, {suplemento})]"
+                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}.{prep}' ({y}, {suplemento})]) ∧ PROC being.{participio}.{prep}' ({y}, {suplemento}) ∧ FIN INGR {participio}.{prep}' ({y}, {suplemento})]"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2690,7 +2690,7 @@ def mostrar_asistente_ls():
                     pred = pred.lower().replace(" ", ".")
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     st.session_state.ls_pred = pred
-                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})]"
+                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN INGR {participio}' ({y})]"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2715,7 +2715,7 @@ def mostrar_asistente_ls():
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     prep = prep.lower().replace(" ", ".")
                     st.session_state.ls_complemento_regimen = suplemento
-                    ls = f"do' ({x}, [{pred}.{prep}' ({x}, {suplemento})]) ∧ PROC {participio}.{prep}' ({x}, {suplemento}) ∧ FIN {participio}.{prep}' ({x}, {suplemento})"
+                    ls = f"do' ({x}, [{pred}.{prep}' ({x}, {suplemento})]) ∧ PROC {participio}.{prep}' ({x}, {suplemento}) ∧ FIN INGR {participio}.{prep}' ({x}, {suplemento})"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2724,7 +2724,7 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             pred = st.session_state.ls_pred
             participio = infinitivo_a_participio(pred).replace(" ", ".")
-            ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC {participio}' ({x}) ∧ FIN {participio}' ({x})"
+            ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC {participio}' ({x}) ∧ FIN INGR {participio}' ({x})"
             st.session_state.ls_estructura = ls
             ir_a_intencionalidad()
             botones_navegacion()
@@ -2843,7 +2843,7 @@ def mostrar_asistente_ls():
                             "",
                             "Este programa representa la fase procesual y el estado resultante como dos conjuntos simultáneos, siguiendo la revisión de Van Valin (2023), que incorpora la propuesta de Osswald para resolver la «anomalía del y-entonces» de la notación anterior.",
                             "",
-                            "- Este programa: `do' (x, [pred' (x, y)]) ∧ PROC being.consumed' (y) ∧ FIN consumed' (y)`",
+                            "- Este programa: `do' (x, [pred' (x, y)]) ∧ PROC being.consumed' (y) ∧ FIN INGR consumed' (y)`",
                             "- Van Valin y LaPolla (1997) / Van Valin (2005): `do' (x, [pred' (x, y)]) & INGR consumed' (y)`",
                         ]))
                     if usa_proc_fin and usa_causa_anticausativa:
