@@ -53,11 +53,28 @@ IRREGULARES = {
     "ser": {"ger": "siendo", "pp": "sido"}, "pudrir": {"pp": "podrido"},
     "leer": {"ger": "leyendo", "pp": "leído"}, "traer": {"ger": "trayendo", "pp": "traído"},
     "caer": {"ger": "cayendo", "pp": "caído"}, "oír": {"ger": "oyendo", "pp": "oído"},
+    # Derivados con participio irregular. Estaban en PARTICIPIOS_IRREGULARES
+    # (ls.py) y faltaban aquí, de modo que los dos módulos daban formas
+    # distintas del mismo verbo (*ha resolvido / ha resuelto).
+    "encubrir": {"pp": "encubierto"}, "recubrir": {"pp": "recubierto"},
+    "describir": {"pp": "descrito"}, "inscribir": {"pp": "inscrito"},
+    "prescribir": {"pp": "prescrito"}, "proscribir": {"pp": "proscrito"},
+    "suscribir": {"pp": "suscrito"}, "transcribir": {"pp": "transcrito"},
+    "deshacer": {"pp": "deshecho"}, "rehacer": {"pp": "rehecho"},
+    "componer": {"pp": "compuesto"}, "descomponer": {"pp": "descompuesto"},
+    "disponer": {"pp": "dispuesto"}, "exponer": {"pp": "expuesto"},
+    "imponer": {"pp": "impuesto"}, "oponer": {"pp": "opuesto"},
+    "proponer": {"pp": "propuesto"}, "reponer": {"pp": "repuesto"},
+    "suponer": {"pp": "supuesto"},
+    "absolver": {"pp": "absuelto"}, "disolver": {"pp": "disuelto"},
+    "resolver": {"pp": "resuelto"}, "devolver": {"pp": "devuelto"},
+    "envolver": {"pp": "envuelto"}, "revolver": {"pp": "revuelto"},
+    "prever": {"pp": "previsto"}, "entrever": {"pp": "entrevisto"},
     "pedir": {"ger": "pidiendo"}, "sentir": {"ger": "sintiendo"},
     "mentir": {"ger": "mintiendo"}, "seguir": {"ger": "siguiendo"},
     "conseguir": {"ger": "consiguiendo"}, "perseguir": {"ger": "persiguiendo"},
     "servir": {"ger": "sirviendo"}, "vestir": {"ger": "vistiendo"},
-    "repetir": {"ger": "repitiendo"}, "elegir": {"ger": "elegiendo"},
+    "repetir": {"ger": "repitiendo"}, "elegir": {"ger": "eligiendo"},
     "corregir": {"ger": "corrigiendo"}, "reír": {"ger": "riendo"},
     "sonreír": {"ger": "sonriendo"}, "venir": {"ger": "viniendo"},
     "competir": {"ger": "compitiendo"}, "medir": {"ger": "midiendo"},
@@ -84,7 +101,7 @@ PERSONAS_DICT = {
 @st.cache_resource
 def load_nlp():
     try: return spacy.load("es_core_news_sm")
-    except: return None
+    except OSError: return None
 
 nlp = load_nlp()
 
@@ -103,8 +120,11 @@ def analizar_automaticamente(oracion, datos):
     texto_verbo = verbo_token.text.lower()
     
     PRETERITOS_FUERTES = {"estuv": "estar", "tuv": "tener", "anduv": "andar", "pud": "poder", "pus": "poner", "sup": "saber", "hic": "hacer", "hiz": "hacer", "quis": "querer", "vin": "venir", "dij": "decir", "traj": "traer"}
+    # La raíz sola no basta: sin comprobar la desinencia, "pudrió" se analiza
+    # como poder, "vinculó" como venir, "trajinó" como traer y "supuso" como saber.
+    DESINENCIAS_PRET_FUERTE = ("e", "iste", "o", "imos", "isteis", "ieron", "eron")
     for raiz, inf_real in PRETERITOS_FUERTES.items():
-        if texto_verbo.startswith(raiz):
+        if texto_verbo.startswith(raiz) and texto_verbo[len(raiz):] in DESINENCIAS_PRET_FUERTE:
             lema_limpio = inf_real
             break
             
@@ -113,17 +133,30 @@ def analizar_automaticamente(oracion, datos):
     ger, part = IRREGULARES.get(lema_limpio, {}).get("ger", ""), IRREGULARES.get(lema_limpio, {}).get("pp", "")
     
     if not ger:
-        if lema_limpio.endswith("uir") and not lema_limpio.endswith(("guir", "quir", "güir")): ger = lema_limpio[:-2] + "yendo"
-        elif lema_limpio.endswith("ar"): ger = lema_limpio[:-2] + "ando"
-        elif lema_limpio.endswith(("er", "ir")): ger = lema_limpio[:-2] + "iendo"
+        if lema_limpio.endswith("ar"): ger = lema_limpio[:-2] + "ando"
+        elif lema_limpio.endswith("eír"): ger = lema_limpio[:-3] + "iendo"   # freír > friendo
+        elif lema_limpio.endswith("güir"): ger = lema_limpio[:-4] + "guyendo"   # argüir > arguyendo
+        elif lema_limpio.endswith(("er", "ir", "ér", "ír")):
+            raiz = lema_limpio[:-2]
+            # Raíz terminada en vocal: i > y (leer > leyendo, caer > cayendo,
+            # huir > huyendo). Se excluyen -guir y -quir, donde la u no es
+            # vocal de la raíz (distinguir > distinguiendo).
+            if raiz and raiz[-1] in "aeiouáéíóú" and not lema_limpio.endswith(("guir", "quir")):
+                ger = raiz + "yendo"
+            else:
+                ger = raiz + "iendo"
     if not part:
         if lema_limpio.endswith("ar"): part = lema_limpio[:-2] + "ado"
-        elif lema_limpio.endswith(("er", "ir")): part = lema_limpio[:-2] + "ido"
+        elif lema_limpio.endswith(("er", "ir", "ér", "ír")):
+            raiz = lema_limpio[:-2]
+            # Raíz en vocal fuerte: hiato, la i lleva tilde (leído, caído, traído).
+            # Raíz en u o i: diptongo, sin tilde (huido, construido, seguido).
+            part = raiz + ("ído" if raiz and raiz[-1] in "aeoáéó" else "ido")
         
     datos.gerundio, datos.participio = ger, part
     
     if texto_verbo.endswith(("é", "í")): datos.persona_numero = "1s"
-    elif texto_verbo.endswith(("aste", "iste", "as", "es")): datos.persona_numero = "2s"
+    elif texto_verbo.endswith(("aste", "iste")): datos.persona_numero = "2s"
     elif texto_verbo.endswith("ó"): datos.persona_numero = "3s"
     else:
         morph = verbo_token.morph.to_dict()
@@ -151,21 +184,27 @@ def ir_a(paso):
 
 def volver():
     if st.session_state.historial:
-        paso_actual = st.session_state.akt_paso
-        if paso_actual == 'limpieza':
+        # Se decide por el paso de DESTINO, no por el actual: desde 'resultado'
+        # se regresa a 'dinamicidad' (ruta normal) o a 'estatividad' (ruta de
+        # los estados), y cada caso exige anular un rasgo distinto.
+        destino = st.session_state.historial[-1]
+        if destino in ('causatividad', 'verificar_causa', 'evento_basico'):
             st.session_state.rasgos.causativo = None
             st.session_state.variante_no_causativa = ""
-        elif paso_actual == 'estatividad':
+            # Sin esto, las pruebas seguirían aplicándose a la variante no
+            # causativa después de deshacer la descomposición.
+            st.session_state.oracion_actual = st.session_state.oracion_original
+        elif destino in ('analisis_morph', 'manual_morph'):
             st.session_state.datos = DatosClause()
-        elif paso_actual == 'puntualidad':
+        elif destino == 'estatividad':
             st.session_state.rasgos.estativo = None
-        elif paso_actual == 'telicidad':
+        elif destino == 'puntualidad':
             st.session_state.rasgos.puntual = None
-        elif paso_actual == 'dinamicidad':
+        elif destino == 'telicidad':
             st.session_state.rasgos.telico = None
-        elif paso_actual == 'resultado':
+        elif destino == 'dinamicidad':
             st.session_state.rasgos.dinamico = None
-            
+
         st.session_state.akt_paso = st.session_state.historial.pop()
         st.rerun()
 
@@ -268,7 +307,7 @@ def mostrar_detector_es():
         if st.session_state.akt_paso == 'inicio':
             st.write("Este programa te ayudará a identificar el aktionsart del predicado principal en una cláusula.")
             st.write("Por favor, escribe una cláusula con el verbo que quieres probar conjugado en **pretérito** (ej.: *Pedro corrió hasta su casa*).")
-            st.write("Si suena muy extraña, escríbela en **presente** (ej.: *María sabe inglés*).")
+            st.write("Si suena muy extraña, o si en pretérito el verbo pasa a significar algo distinto de lo que quieres analizar, escríbela en **presente** (ej.: *María sabe inglés*, no *María supo la verdad*).")
             with st.form(key="form_inicio_es"):
                 oracion = st.text_input("Cláusula:")
                 if st.form_submit_button("Comenzar el análisis"):
@@ -290,8 +329,7 @@ def mostrar_detector_es():
                 c1, c2 = st.columns(2)
                 if c1.form_submit_button("Siguiente"):
                     if not reformula.strip():
-                        st.session_state.rasgos.causativo = False
-                        ir_a('limpieza')
+                        st.warning("Por favor, escribe tu reformulación o presiona 'No es posible reformularla'")
                     else:
                         st.session_state.reformulacion = reformula
                         ir_a('verificar_causa')
@@ -357,7 +395,7 @@ def mostrar_detector_es():
 
         elif st.session_state.akt_paso == 'corregir_limpieza':
             with st.form(key="form_limp_act_es"):
-                nueva = st.text_input(f"Por favor, escribe *{st.session_state.oracion_actual}* de nuevo **sin** esos elementos (ej.: *Pedro corrió* en vez de *Pedro nunca corrió ayer*):")
+                nueva = st.text_input(f"Por favor, escribe *{st.session_state.oracion_actual}* de nuevo **sin** esos elementos (ej.: *Pedro corrió hasta su casa* en vez de *Pedro nunca corrió rápidamente hasta su casa ayer*):")
                 if st.form_submit_button("Actualizar"):
                     if nueva:
                         st.session_state.oracion_actual = nueva
@@ -469,12 +507,18 @@ def mostrar_detector_es():
 
         elif st.session_state.akt_paso == 'dinamicidad':
             st.markdown("#### **Prueba de dinamicidad**")
-            p = construir_perif('gerundio_pres', st.session_state.datos)
+            if st.session_state.rasgos.puntual:
+                # Con predicados puntuales el progresivo coerciona la lectura hacia
+                # lo iterativo o lo inminente y la prueba deja de medir dinamicidad.
+                # Se usa la cláusula simple, igual que en ls.py (paso 'dinamicidad').
+                p = st.session_state.oracion_actual
+            else:
+                p = construir_perif('gerundio_pres', st.session_state.datos)
             st.write("Observa estas expresiones:")
             lista_elegante([
                 f"<i>{p.capitalize()} enérgicamente</i>.",
                 f"<i>{p.capitalize()} con fuerza</i>.",
-                f"<i>{p.capitalize()} con ganas</i>."
+                f"<i>{p.capitalize()} vigorosamente</i>."
             ])
             st.write("¿Te parecería natural decir algunas de estas expresiones?")
             c1, c2 = st.columns(2)

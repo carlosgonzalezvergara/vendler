@@ -70,7 +70,7 @@ RRG_KEYWORDS = {
     "asp", "not", "purp", "being.created", "being.consumed", "consumed",
     "have.as.part", "have.as.kin", "have.enough.with", "express", "hit",
     "move.away.from.reference.point", "move.up.from.reference.point", 
-    "move.down.from.reference.point", "not"
+    "move.down.from.reference.point", "be-at.far.side.of"
 }
 
 # --- 1. CLASES Y ESTRUCTURAS ---
@@ -304,11 +304,18 @@ def insertar_mr(ls: str, mr: str) -> str:
         return f"{ls} {mr}"
     return ls
 
-def traducir_ls_a_ingles(ls_string: str, usar_html: bool = True) -> str:
+def traducir_ls_a_ingles(ls_string: str, usar_html: bool = True, fallos: list = None) -> str:
     """
     Traduce constantes al inglés y las pone en NEGRITA.
     Incluye un diccionario de correcciones ampliado para evitar ambigüedades 
     donde el traductor confunde participios con sustantivos.
+
+    Si se pasa una lista en `fallos`, se le añade (sin duplicar) cada palabra
+    que no pudo traducirse por un problema técnico: el traductor no está
+    disponible, la llamada falla, o devuelve una traducción vacía. No cubre
+    los casos en que el traductor sí responde pero el usuario no está de
+    acuerdo con la traducción obtenida; eso sigue siendo una corrección
+    voluntaria, no un fallo.
     """
     if not ls_string:
         return ls_string
@@ -325,6 +332,10 @@ def traducir_ls_a_ingles(ls_string: str, usar_html: bool = True) -> str:
         translator = GoogleTranslator(source='es', target='en')
     else:
         translator = None
+
+    def _registrar_fallo(constante):
+        if fallos is not None and constante not in fallos:
+            fallos.append(constante)
 
     def reemplazar_match(match):
         constante = match.group(1) 
@@ -352,8 +363,13 @@ def traducir_ls_a_ingles(ls_string: str, usar_html: bool = True) -> str:
                     if traduccion:
                         palabra_final = traduccion.lower().strip().replace(" ", ".")
                         CACHE_TRADUCCION[texto_limpio] = palabra_final
+                    else:
+                        _registrar_fallo(constante)
                 except Exception:
-                    pass 
+                    _registrar_fallo(constante)
+        else:
+            # No hay traductor disponible en absoluto (librería ausente).
+            _registrar_fallo(constante)
 
         return f"{NEGRITA_INICIO}{palabra_final}'{NEGRITA_FIN}"
 
@@ -376,11 +392,15 @@ def infinitivo_a_participio(infinitivo: str) -> str:
     if infinitivo in PARTICIPIOS_IRREGULARES:
         return PARTICIPIOS_IRREGULARES[infinitivo]
     
-    # Reglas regulares (adaptado de aktionsart_es.py)
+    # Reglas regulares (adaptado de aktionsart_es.py, con la corrección de
+    # raíz vocálica aplicada allí: creer > creído, no creido)
     if infinitivo.endswith("ar"):
         return infinitivo[:-2] + "ado"
-    elif infinitivo.endswith(("er", "ir")):
-        return infinitivo[:-2] + "ido"
+    elif infinitivo.endswith(("er", "ir", "ér", "ír")):
+        raiz = infinitivo[:-2]
+        # Raíz en vocal fuerte: hiato, la i lleva tilde (leído, caído, traído).
+        # Raíz en u o i: diptongo, sin tilde (huido, construido, seguido).
+        return raiz + ("ído" if raiz and raiz[-1] in "aeoáéó" else "ido")
     
     # Si no reconoce el patrón, devolver tal cual
     return infinitivo
@@ -497,7 +517,7 @@ def reemplazar_predicado_en_ls(ls_html: str, pred_viejo: str, pred_nuevo: str) -
 
 # --- 4. FUNCIONES DE GENERACIÓN DE ESTRUCTURAS LÓGICAS ---
 
-def generar_estructura_no_causativa(x, y, locus, pred, operador, AKT):
+def generar_estructura_no_causativa(x, y, locus, pred, operador):
     if y != "Ø" and locus == "Ø":
         return f"{operador + ' ' if operador else ''}{pred}' ({x}, {y})"
     elif y == "Ø" and locus != "Ø":
@@ -525,7 +545,7 @@ def generar_estructura_actividad_causativa(x, y, pred, operador):
         return None
     return f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}do' ({y}, [{pred}' ({y})])]"
 
-def aplicar_DO(x, estructura_logica):
+def aplicar_DO(estructura_logica):
     if estructura_logica is None:
         return None
     ls_sin_mr, mr = extraer_mr(estructura_logica)
@@ -1123,7 +1143,7 @@ def mostrar_asistente_ls():
                 st.session_state.ls_es_dinamico = False
                 ir_a('caso_especial_check')
             elif AKT in ["logro", "semelfactivo"]:
-                st.info(f"¿**{oracion[0].upper() + oracion[1:]}** es compatible con expresiones como *enérgicamente*, *con fuerza* o *con ganas*?")
+                st.info(f"¿**{oracion[0].upper() + oracion[1:]}** es compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
                 c1, c2 = st.columns(2)
                 c1.button("Sí", use_container_width=True, key="din_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
                 c2.button("No", use_container_width=True, key="din_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
@@ -1141,7 +1161,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'dinamicidad_confirm':
             clausula = st.session_state.get('ls_clausula_resultante', '')
-            st.info(f"¿Es **{clausula}** compatible con expresiones como *enérgicamente*, *con fuerza* o *con ganas*?")
+            st.info(f"¿Es **{clausula}** compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="din_conf_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
             c2.button("No", use_container_width=True, key="din_conf_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
@@ -2337,7 +2357,7 @@ def mostrar_asistente_ls():
                 if AKT != "estado" and y != "Ø":
                     ir_a('pregunta_percepcion')
                 else:
-                    ls = generar_estructura_no_causativa(x, y, locus, pred, operador, AKT)
+                    ls = generar_estructura_no_causativa(x, y, locus, pred, operador)
                     if ls:
                         st.session_state.ls_estructura = ls
                         ir_a_intencionalidad()
@@ -2414,7 +2434,7 @@ def mostrar_asistente_ls():
             if es_dinamico:
                 ls = generar_estructura_actividad(x, y, locus, pred, operador)
             else:
-                ls = generar_estructura_no_causativa(x, y, locus, pred, operador, AKT)
+                ls = generar_estructura_no_causativa(x, y, locus, pred, operador)
             
             if ls:
                 st.session_state.ls_estructura = ls
@@ -2538,7 +2558,26 @@ def mostrar_asistente_ls():
                 pred = categoria_mov
                 st.session_state.ls_pred = pred
             
-            if (locus == "Ø" or (locus != "Ø" and y != "Ø")) and not es_causativa:
+            if es_causativa:
+                ir_a('ra_despl_lugar')
+            elif locus == "Ø" and y == "Ø":
+                # Sin trayecto (CD) ni meta (locativo) expresados: es una
+                # actividad simple, no una realización activa télica. Decisión
+                # confirmada para el caso "Ana corrió" sin complementos.
+                ls = f"do' ({x}, [{pred}' ({x})])"
+                st.session_state.ls_estructura = ls
+                ir_a_intencionalidad()
+            elif locus == "Ø" and y != "Ø":
+                # El CD expresa el trayecto sin meta aparte (p. ej. "cruzó el
+                # río"). FIN se refiere al propio trayecto recorrido, no a un
+                # locativo aparte que la cláusula no expresa. "be-at.far.side.of'"
+                # es una constante propuesta por Claude, sin verificar contra
+                # ninguna fuente publicada; cámbiala aquí si encuentras la forma
+                # canónica correspondiente.
+                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN be-at.far.side.of' ({y}, {x})"
+                st.session_state.ls_estructura = ls
+                ir_a_intencionalidad()
+            elif locus != "Ø" and y != "Ø":
                 ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN be-LOC' ({locus}, {x})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
@@ -2596,7 +2635,7 @@ def mostrar_asistente_ls():
                             pred = pred.lower().replace(" ", ".")
                             participio = infinitivo_a_participio(pred).replace(" ", ".")
                             st.session_state.ls_pred = pred
-                            ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC {participio}' ({y}) ∧ FIN {participio}' ({y})]"
+                            ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})]"
                             st.session_state.ls_estructura = ls
                             ir_a_intencionalidad()
                 else:
@@ -2605,7 +2644,7 @@ def mostrar_asistente_ls():
                 if y != "Ø":
                     pred = st.session_state.ls_pred
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
-                    ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC {participio}' ({y}) ∧ FIN {participio}' ({y})"
+                    ls = f"do' ({x}, [{pred}' ({x}, {y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
                 else:
@@ -2636,7 +2675,7 @@ def mostrar_asistente_ls():
                     prep = prep.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     st.session_state.ls_complemento_regimen = suplemento
-                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}.{prep}' ({y}, {suplemento})]) ∧ PROC {participio}.{prep}' ({y}, {suplemento}) ∧ FIN {participio}.{prep}' ({y}, {suplemento})]"
+                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}.{prep}' ({y}, {suplemento})]) ∧ PROC being.{participio}.{prep}' ({y}, {suplemento}) ∧ FIN {participio}.{prep}' ({y}, {suplemento})]"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2651,7 +2690,7 @@ def mostrar_asistente_ls():
                     pred = pred.lower().replace(" ", ".")
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     st.session_state.ls_pred = pred
-                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC {participio}' ({y}) ∧ FIN {participio}' ({y})]"
+                    ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC being.{participio}' ({y}) ∧ FIN {participio}' ({y})]"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2723,7 +2762,7 @@ def mostrar_asistente_ls():
                 
                 def _int_si():
                     x = st.session_state.ls_x
-                    estructura_con_do = aplicar_DO(x, st.session_state.ls_estructura)
+                    estructura_con_do = aplicar_DO(st.session_state.ls_estructura)
                     st.session_state.ls_estructura = estructura_con_do
                     st.session_state.ls_estructura_con_do = estructura_con_do  # GUARDAR
                     st.session_state.ls_paso = 'anticausativa'
@@ -2750,6 +2789,7 @@ def mostrar_asistente_ls():
                 
                 def _anti_si():
                     st.session_state.ls_estructura = aplicar_anticausativa(st.session_state.ls_estructura)
+                    st.session_state.ls_via_anticausativa = True
                     # Solo actualizar ls_estructura_pre_do si no se aplicó DO
                     if not st.session_state.get('ls_estructura_con_do'):
                         st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
@@ -2774,11 +2814,49 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'resultado':
             st.markdown("### Estructura lógica generada")
             
-            # Aplicar traducción con negritas HTML
-            ls_traducida = traducir_ls_a_ingles(st.session_state.ls_estructura, usar_html=True)
+            # Aplicar traducción con negritas HTML, registrando qué palabras
+            # no pudieron traducirse por un fallo técnico (traductor ausente,
+            # llamada fallida, o traducción vacía).
+            fallos_traduccion = []
+            ls_traducida = traducir_ls_a_ingles(st.session_state.ls_estructura, usar_html=True, fallos=fallos_traduccion)
             st.session_state.ls_estructura_traducida = ls_traducida
+            # Se guarda en session_state porque 'seleccionar_predicados' la necesita
+            # para saber cuál predicado corregir es en realidad un fallo técnico y
+            # cuál es solo una traducción que el usuario quiere afinar.
+            st.session_state.ls_fallos_traduccion = fallos_traduccion
             
             st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            
+            # Nota teórica sobre notación alternativa, solo si el caso la activa.
+            # Las líneas se unen con \n en vez de escribirse como docstring
+            # indentado, para que la sangría del código no se interprete como
+            # bloque de código dentro del markdown.
+            akt_actual = st.session_state.ls_akt
+            usa_proc_fin = akt_actual in ("realización activa", "realización activa causativa")
+            usa_causa_anticausativa = st.session_state.get('ls_via_anticausativa', False)
+
+            if usa_proc_fin or usa_causa_anticausativa:
+                with st.expander("📚 Nota teórica: notación alternativa"):
+                    if usa_proc_fin:
+                        st.markdown("\n".join([
+                            "**Fase procesual y estado resultante (realización activa)**",
+                            "",
+                            "Este programa representa la fase procesual y el estado resultante como dos conjuntos simultáneos, siguiendo la revisión de Van Valin (2023), que incorpora la propuesta de Osswald para resolver la «anomalía del y-entonces» de la notación anterior.",
+                            "",
+                            "- Este programa: `do' (x, [pred' (x, y)]) ∧ PROC being.consumed' (y) ∧ FIN consumed' (y)`",
+                            "- Van Valin y LaPolla (1997) / Van Valin (2005): `do' (x, [pred' (x, y)]) & INGR consumed' (y)`",
+                        ]))
+                    if usa_proc_fin and usa_causa_anticausativa:
+                        st.write("---")
+                    if usa_causa_anticausativa:
+                        st.markdown("\n".join([
+                            "**Anticausativo con componente causal conservado**",
+                            "",
+                            "Este programa conserva el operador `CAUSE` con el argumento causante inespecificado, en vez de eliminarlo, siguiendo González Vergara (2006).",
+                            "",
+                            "- Este programa: `[do' (Ø, Ø)] CAUSE [INGR broken' (jarrón)]`",
+                            "- Tratamiento estándar: `INGR broken' (jarrón)`",
+                        ]))
             
             # Extraer predicados modificables
             predicados = extraer_predicados_de_ls(ls_traducida)
@@ -2787,7 +2865,14 @@ def mostrar_asistente_ls():
             st.write("---")
             
             # Informar sobre traducción automática y ofrecer corrección
-            if predicados:
+            if fallos_traduccion:
+                lista_fallos = ", ".join(f"**{p}**" for p in fallos_traduccion)
+                st.error(f"No se pudo obtener la traducción automática de: {lista_fallos}. ¿Quieres hacer el cambio manualmente?")
+                
+                c1, c2 = st.columns(2)
+                c1.button("Sí, corregir manualmente", use_container_width=True, key="mod_pred_si", on_click=crear_callback_ir_a('seleccionar_predicados'))
+                c2.button("No, continuar", use_container_width=True, key="mod_pred_no", on_click=crear_callback_ir_a('preguntar_operadores'))
+            elif predicados:
                 st.warning("El programa traduce automáticamente los predicados del español al inglés, pero puede cometer errores en casos de ambigüedad léxica.")
                 st.info("¿Quieres modificar alguno de los predicados?")
                 
@@ -2835,7 +2920,10 @@ def mostrar_asistente_ls():
             if len(predicados) == 1:
                 # Solo un predicado: preguntar directamente
                 pred = predicados[0]
-                st.info(f"El predicado traducido es **{pred}**. ¿Quieres modificarlo?")
+                if pred in st.session_state.get('ls_fallos_traduccion', []):
+                    st.error(f"No se pudo traducir automáticamente **{pred}**. Escribe la traducción correcta:")
+                else:
+                    st.info(f"El predicado traducido es **{pred}**. ¿Quieres modificarlo?")
                 
                 with st.form(key="form_corregir_unico"):
                     nuevo_valor = st.text_input(
@@ -3031,7 +3119,7 @@ def mostrar_asistente_ls():
             
             st.markdown("<br>", unsafe_allow_html=True) 
 
-            with st.expander("Copiar o descargar estructura lógica (texto plano, LaTex o imagen)"):
+            with st.expander("Copiar o descargar estructura lógica (texto plano, LaTeX o imagen)"):
                 ls_copiable = limpiar_html_ls(ls_final)
                 ls_latex = convertir_ls_a_latex(ls_final)
                 

@@ -6,13 +6,29 @@ import info
 import base64
 from pathlib import Path
 
+# Directorio del script: todas las rutas a recursos se construyen sobre esta base
+# para que la aplicación funcione con independencia del directorio de trabajo.
+BASE = Path(__file__).parent
+
+_favicon = BASE / "favicon.png"
+
 # Configuración de la página (Sin barra lateral)
 st.set_page_config(
-    page_title="Vendler - RRG Suite", 
-    page_icon="favicon.png",
+    page_title="Vendler - RRG Suite",
+    page_icon=str(_favicon) if _favicon.exists() else None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Ocultar la barra lateral por CSS. Se inyecta al comienzo para evitar
+# que la barra alcance a dibujarse antes de que se aplique la regla.
+st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- 1. GESTIÓN DE ESTADO ---
 
@@ -22,31 +38,58 @@ if 'lang' not in st.session_state:
 if 'seccion' not in st.session_state:
     st.session_state.seccion = 'home'
 
+# Sección renderizada en la ejecución anterior. Permite detectar transiciones
+# de sección que no pasan por cambiar_seccion().
+if 'seccion_previa' not in st.session_state:
+    st.session_state.seccion_previa = None
+
+# Bandera de un solo uso: avisa de que se devolvió al usuario al inicio porque
+# el asistente de estructuras lógicas no existe en inglés.
+if 'aviso_ls_solo_es' not in st.session_state:
+    st.session_state.aviso_ls_solo_es = False
+
 # --- 2. FUNCIONES DE CONTROL (Callbacks) ---
+
+@st.cache_data
+def cargar_imagen_b64(nombre: str) -> str:
+    """Lee un archivo de imagen y lo devuelve codificado en base64.
+
+    El resultado se cachea porque Streamlit reejecuta el script completo en
+    cada interacción y los asistentes tienen muchos pasos.
+    """
+    with open(BASE / nombre, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
 
 def cambiar_seccion(nueva_seccion):
     # Limpiar variables del módulo de destino para empezar desde cero
     if nueva_seccion == 'akt':
         # Variables de aktionsart_es
-        for key in ['akt_paso', 'historial', 'rasgos', 'datos', 'oracion_original', 
+        for key in ['akt_paso', 'historial', 'rasgos', 'datos', 'oracion_original',
                     'oracion_actual', 'clausula_limpia', 'variante_no_causativa', 'reformulacion']:
             if key in st.session_state:
                 del st.session_state[key]
         # Variables de aktionsart_en
-        for key in ['akt_step', 'history', 'features', 'data', 'original_clause', 
+        for key in ['akt_step', 'history', 'features', 'data', 'original_clause',
                     'current_clause', 'clean_clause', 'non_causative_variant', 'paraphrase']:
             if key in st.session_state:
                 del st.session_state[key]
     elif nueva_seccion == 'ls':
-        # Variables de ls_gen_es
+        # Variables del módulo ls
         for key in list(st.session_state.keys()):
             if key.startswith('ls_'):
                 del st.session_state[key]
-    
+
     st.session_state.seccion = nueva_seccion
+
 
 def cambiar_idioma():
     st.session_state.lang = 'ES' if st.session_state.lang == 'EN' else 'EN'
+    # El asistente de estructuras lógicas solo existe en español: si el usuario
+    # cambia a inglés mientras lo está usando, se lo devuelve al menú de inicio.
+    if st.session_state.lang == 'EN' and st.session_state.seccion == 'ls':
+        st.session_state.seccion = 'home'
+        st.session_state.aviso_ls_solo_es = True
 
 # --- 3. DICCIONARIO DE TEXTOS ---
 textos = {
@@ -69,7 +112,8 @@ textos = {
         'desc_akt': "Pruebas diagnósticas interactivas para determinar la clase aspectual.",
         'desc_ls': "Generación formal de la estructura lógica (LS) en español.",
         'desc_info': "Créditos, bibliografía y contacto institucional.",
-        'lang_label': "Switch to English"
+        'lang_label': "Switch to English",
+        'aviso_ls': ""
     },
     'EN': {
         'titulo': "Vendler",
@@ -84,14 +128,14 @@ textos = {
         **Note on features:** Please note that the English version currently only includes the assistant for aktionsart detection. The formalization of logical structures (LS) is available exclusively in the Spanish version of this program.
         """,
         'btn_akt': "Aktionsart Detector",
-        'btn_ls': None, 
+        'btn_ls': None,
         'btn_info': "Information",
         'btn_volver': "Back to Home",
         'desc_akt': "Interactive diagnostic tests to determine the aspectual class.",
         'desc_ls': None,
         'desc_info': "Credits, bibliography, and institutional contact info.",
         'lang_label': "Cambiar a español",
-        'footer': "Carlos González Vergara | cgonzalv@uc.cl"
+        'aviso_ls': "The logical structure assistant is available in Spanish only, so you have been returned to the home menu."
     }
 }
 
@@ -102,14 +146,12 @@ L = textos[st.session_state.lang]
 col_tit, col_btn = st.columns([0.7, 0.3])
 with col_tit:
     try:
-        logo_path = Path(__file__).parent / "vendler.png"
-        with open(logo_path, "rb") as f:
-            logo_data = base64.b64encode(f.read()).decode()
+        logo_data = cargar_imagen_b64("vendler.png")
         st.markdown(
             f'<img src="data:image/png;base64,{logo_data}" alt="Vendler" width="300">',
             unsafe_allow_html=True,
         )
-    except Exception:
+    except OSError:
         st.title("Vendler")
     st.caption(L['subtitulo'])
 with col_btn:
@@ -121,13 +163,35 @@ if st.session_state.seccion != 'home':
 
 st.divider()
 
-# --- 5. RENDERIZADO DE CONTENIDO ---
+# --- 5. CONTROL DE TRANSICIONES DE SECCIÓN ---
+
+# El traspaso desde el detector de aktionsart al generador de LS escribe
+# ls_akt, ls_oracion y ls_es_dinamico y asigna la sección directamente, sin
+# pasar por cambiar_seccion() (si pasara, el bucle de limpieza borraría esas
+# mismas claves). Como consecuencia, el estado de un análisis de LS anterior
+# sobrevive y mostrar_asistente_ls() no reinicializa, porque solo lo hace si
+# falta 'ls_paso'. Aquí se limpia todo salvo lo que el detector acaba de pasar.
+if st.session_state.seccion != st.session_state.seccion_previa:
+    if st.session_state.seccion == 'ls' and st.session_state.seccion_previa == 'akt':
+        preservar = ('ls_akt', 'ls_oracion', 'ls_es_dinamico')
+        for key in [k for k in list(st.session_state.keys())
+                    if k.startswith('ls_') and k not in preservar]:
+            del st.session_state[key]
+    st.session_state.seccion_previa = st.session_state.seccion
+
+# --- 6. RENDERIZADO DE CONTENIDO ---
 
 if st.session_state.seccion == 'home':
+    # Aviso de un solo uso tras un cambio de idioma desde el módulo de LS
+    if st.session_state.aviso_ls_solo_es:
+        if L['aviso_ls']:
+            st.info(L['aviso_ls'])
+        st.session_state.aviso_ls_solo_es = False
+
     st.markdown(L['presentacion'])
     st.divider()
-    
-    # Menú visual con botones grandesa
+
+    # Menú visual con botones grandes
     if st.session_state.lang == 'ES':
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -152,12 +216,8 @@ if st.session_state.seccion == 'home':
 
     # Footer: logo cgv.tools + badge CC en la misma línea, firma debajo
     try:
-        cgv_logo_path = Path(__file__).parent / "cgv-tools.png"
-        cc_icon_path = Path(__file__).parent / "cc_icon.png"
-        with open(cgv_logo_path, "rb") as f:
-            cgv_data = base64.b64encode(f.read()).decode()
-        with open(cc_icon_path, "rb") as f:
-            cc_data = base64.b64encode(f.read()).decode()
+        cgv_data = cargar_imagen_b64("cgv-tools.png")
+        cc_data = cargar_imagen_b64("cc_icon.png")
         st.markdown(
             f'''
             <div style="display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 8px;">
@@ -174,7 +234,7 @@ if st.session_state.seccion == 'home':
             ''',
             unsafe_allow_html=True,
         )
-    except Exception:
+    except OSError:
         st.caption("by Carlos González Vergara (__cgonzalv@uc.cl__)")
         st.markdown("[cgv.tools](https://cgv.tools) · [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)")
 
@@ -189,12 +249,3 @@ elif st.session_state.seccion == 'ls':
 
 elif st.session_state.seccion == 'info':
     info.mostrar_info()
-
-# Ocultar la barra lateral por CSS para mayor limpieza
-st.markdown("""
-    <style>
-        [data-testid="stSidebar"] {
-            display: none;
-        }
-    </style>
-    """, unsafe_allow_html=True)

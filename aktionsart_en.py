@@ -172,6 +172,38 @@ IRREGULARS = {
     "wear": {"ger": "wearing", "pp": "worn"},
     "choose": {"ger": "choosing", "pp": "chosen"},
     "hide": {"ger": "hiding", "pp": "hidden"},
+    # Irregulares de uso frecuente sin cobertura previa (hallados al auditar
+    # generate_english_forms): ninguna regla ortográfica los deriva.
+    "stick": {"ger": "sticking", "pp": "stuck"}, "strike": {"ger": "striking", "pp": "struck"},
+    "swing": {"ger": "swinging", "pp": "swung"}, "spin": {"ger": "spinning", "pp": "spun"},
+    "sink": {"ger": "sinking", "pp": "sunk"}, "shrink": {"ger": "shrinking", "pp": "shrunk"},
+    "ring": {"ger": "ringing", "pp": "rung"}, "spring": {"ger": "springing", "pp": "sprung"},
+    "sting": {"ger": "stinging", "pp": "stung"}, "cling": {"ger": "clinging", "pp": "clung"},
+    "fling": {"ger": "flinging", "pp": "flung"}, "dig": {"ger": "digging", "pp": "dug"},
+    "shine": {"ger": "shining", "pp": "shone"}, "hurt": {"ger": "hurting", "pp": "hurt"},
+    "cost": {"ger": "costing", "pp": "cost"}, "burst": {"ger": "bursting", "pp": "burst"},
+    "cast": {"ger": "casting", "pp": "cast"}, "rid": {"ger": "ridding", "pp": "rid"},
+    "shed": {"ger": "shedding", "pp": "shed"}, "shut": {"ger": "shutting", "pp": "shut"},
+    "spread": {"ger": "spreading", "pp": "spread"}, "upset": {"ger": "upsetting", "pp": "upset"},
+    "wed": {"ger": "wedding", "pp": "wed"}, "wet": {"ger": "wetting", "pp": "wet"},
+    "spit": {"ger": "spitting", "pp": "spat"}, "slide": {"ger": "sliding", "pp": "slid"},
+    "bite": {"ger": "biting", "pp": "bitten"}, "light": {"ger": "lighting", "pp": "lit"},
+    "fight": {"ger": "fighting", "pp": "fought"},
+    # Verbos de dos sílabas terminados en -er/-it con acento en la sílaba
+    # final: sí duplican consonante (referring, admitted), a diferencia de
+    # "offer" o "visit", que no lo hacen. La ortografía no distingue las dos
+    # clases, así que se listan aquí en vez de intentar una regla general.
+    "refer": {"ger": "referring", "pp": "referred"}, "prefer": {"ger": "preferring", "pp": "preferred"},
+    "transfer": {"ger": "transferring", "pp": "transferred"}, "deter": {"ger": "deterring", "pp": "deterred"},
+    "infer": {"ger": "inferring", "pp": "inferred"}, "confer": {"ger": "conferring", "pp": "conferred"},
+    "admit": {"ger": "admitting", "pp": "admitted"}, "permit": {"ger": "permitting", "pp": "permitted"},
+    "commit": {"ger": "committing", "pp": "committed"}, "submit": {"ger": "submitting", "pp": "submitted"},
+    # Residuales tras aplicar las reglas de duplicación: participio de forma
+    # cero que la regla no deriva (quit/split/bet/slit), y "equip", donde la
+    # "u" tras "q" no es vocal fonéticamente aunque la regla la trate como tal.
+    "quit": {"ger": "quitting", "pp": "quit"}, "split": {"ger": "splitting", "pp": "split"},
+    "bet": {"ger": "betting", "pp": "bet"}, "slit": {"ger": "slitting", "pp": "slit"},
+    "equip": {"ger": "equipping", "pp": "equipped"},
 }
 
 PERSONS_DICT = {
@@ -186,9 +218,23 @@ PERSONS_DICT = {
 @st.cache_resource
 def load_nlp():
     try: return spacy.load("en_core_web_sm")
-    except: return None
+    except OSError: return None
 
 nlp = load_nlp()
+
+def _es_monosilabo(lemma: str) -> bool:
+    """Aproximación por conteo de grupos vocálicos: un solo grupo, una sola sílaba.
+    Sirve para distinguir 'fit' (monosílabo, sí duplica: fitting) de 'visit'
+    (dos sílabas, no duplica: visiting), que terminan igual por escrito."""
+    grupos, en_vocal = 0, False
+    for ch in lemma:
+        if ch in "aeiouy":
+            if not en_vocal:
+                grupos += 1
+            en_vocal = True
+        else:
+            en_vocal = False
+    return grupos <= 1
 
 def generate_english_forms(lemma: str):
     """Generates Gerund and Past Participle using dictionary + heuristic rules."""
@@ -207,7 +253,7 @@ def generate_english_forms(lemma: str):
                   and lemma[-1] not in "aeiouwyx" 
                   and lemma[-2] in "aeiou" 
                   and lemma[-3] not in "aeiou")
-        is_unstressed_ending = lemma.endswith(("er", "en", "el", "it"))
+        is_unstressed_ending = lemma.endswith(("er", "en", "el", "it")) and not _es_monosilabo(lemma)
         if is_cvc and not is_unstressed_ending:
             ger = lemma + lemma[-1] + "ing"
         else:
@@ -216,12 +262,16 @@ def generate_english_forms(lemma: str):
     # Past Participle (Regular)
     if lemma.endswith("e"):
         pp = lemma + "d"
+    elif len(lemma) > 1 and lemma.endswith("y") and lemma[-2] not in "aeiou":
+        # Consonante + y: cry -> cried (frente a vocal + y: play -> played,
+        # que ya cae en la rama de abajo sin necesitar este caso).
+        pp = lemma[:-1] + "ied"
     else:
         is_cvc = (len(lemma) > 2 
                   and lemma[-1] not in "aeiouwyx" 
                   and lemma[-2] in "aeiou" 
                   and lemma[-3] not in "aeiou")
-        is_unstressed_ending = lemma.endswith(("er", "en", "el", "it"))
+        is_unstressed_ending = lemma.endswith(("er", "en", "el", "it")) and not _es_monosilabo(lemma)
         if is_cvc and not is_unstressed_ending:
             pp = lemma + lemma[-1] + "ed"
         else:
@@ -320,21 +370,27 @@ def go_to(step):
 
 def go_back():
     if st.session_state.history:
-        current_step = st.session_state.akt_step
-        if current_step == 'cleanup':
+        # Decided by the DESTINATION step, not the current one: from 'result'
+        # you can return to 'dynamicity' (normal path) or to 'stativity' (state
+        # path), and each case requires clearing a different feature.
+        destination = st.session_state.history[-1]
+        if destination in ('causativity', 'verify_cause', 'basic_event'):
             st.session_state.features.causative = None
             st.session_state.non_causative_variant = ""
-        elif current_step == 'stativity':
+            # Without this, the tests would keep applying to the non-causative
+            # variant after undoing the causative decomposition.
+            st.session_state.current_clause = st.session_state.original_clause
+        elif destination in ('morph_analysis', 'manual_morph'):
             st.session_state.data = ClauseData()
-        elif current_step == 'punctuality':
+        elif destination == 'stativity':
             st.session_state.features.stative = None
-        elif current_step == 'telicity':
+        elif destination == 'punctuality':
             st.session_state.features.punctual = None
-        elif current_step == 'dynamicity':
+        elif destination == 'telicity':
             st.session_state.features.telic = None
-        elif current_step == 'result':
+        elif destination == 'dynamicity':
             st.session_state.features.dynamic = None
-        
+
         st.session_state.akt_step = st.session_state.history.pop()
         st.rerun()
 
@@ -459,8 +515,7 @@ def mostrar_detector_en():
                 c1, c2 = st.columns(2)
                 if c1.form_submit_button("Next"):
                     if not paraphrase.strip():
-                        st.session_state.features.causative = False
-                        go_to('cleanup')
+                        st.warning("Please type your paraphrase, or press 'Not possible to paraphrase'")
                     else:
                         st.session_state.paraphrase = paraphrase
                         go_to('verify_cause')
@@ -526,7 +581,7 @@ def mostrar_detector_en():
 
         elif st.session_state.akt_step == 'fix_cleanup':
             with st.form(key="form_cleanup_en"):
-                new_clause = st.text_input(f"Please type *{st.session_state.current_clause}* again **without** those elements (e.g., *Peter ran* instead of *Peter never ran yesterday*):")
+                new_clause = st.text_input(f"Please type *{st.session_state.current_clause}* again **without** those elements (e.g., *Peter ran home* instead of *Peter never ran quickly home yesterday*):")
                 if st.form_submit_button("Update"):
                     if new_clause:
                         st.session_state.current_clause = new_clause
@@ -638,12 +693,18 @@ def mostrar_detector_en():
 
         elif st.session_state.akt_step == 'dynamicity':
             st.markdown("#### **Dynamicity test**")
-            prog = build_prog(False, st.session_state.data)
+            if st.session_state.features.punctual:
+                # With punctual predicates the progressive coerces an iterative
+                # or imminent reading and the test stops measuring dynamicity.
+                # Uses the simple clause, matching the fix in aktionsart_es.py.
+                base = st.session_state.current_clause
+            else:
+                base = build_prog(False, st.session_state.data)
             st.write("Consider these expressions:")
             elegant_list([
-                f"<i>{prog[0].upper() + prog[1:]} vigorously</i>.",
-                f"<i>{prog[0].upper() + prog[1:]} forcefully</i>.",
-                f"<i>{prog[0].upper() + prog[1:]} with effort</i>."
+                f"<i>{base[0].upper() + base[1:]} vigorously</i>.",
+                f"<i>{base[0].upper() + base[1:]} forcefully</i>.",
+                f"<i>{base[0].upper() + base[1:]} energetically</i>."
             ])
             st.write("Would any of these expressions sound natural to you?")
             c1, c2 = st.columns(2)
