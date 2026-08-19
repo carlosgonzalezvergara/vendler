@@ -22,6 +22,7 @@ class Aktionsart(Enum):
     PROCESO = "proceso"
     PROCESO_CAUSATIVO = "proceso causativo"
 
+
 @dataclass
 class RasgosPred:
     causativo: Optional[bool] = None
@@ -29,6 +30,7 @@ class RasgosPred:
     puntual: Optional[bool] = None
     telico: Optional[bool] = None
     dinamico: Optional[bool] = None
+
 
 @dataclass
 class DatosClause:
@@ -39,55 +41,138 @@ class DatosClause:
     complementos: str = ""
     persona_numero: str = "3s"
 
+
 # --- 2. DICCIONARIOS Y AUXILIARES ---
 
 IRREGULARES = {
-    "abrir": {"pp": "abierto"}, "cubrir": {"pp": "cubierto"},
-    "decir": {"ger": "diciendo", "pp": "dicho"}, "descubrir": {"pp": "descubierto"}, "escribir": {"pp": "escrito"},
-    "hacer": {"pp": "hecho"}, "freír": {"pp": "frito"},
-    "imprimir": {"pp": "impreso"}, "morir": {"ger": "muriendo", "pp": "muerto"},
-    "poner": {"pp": "puesto"}, "proveer": {"pp": "provisto"},
-    "romper": {"pp": "roto"}, "satisfacer": {"pp": "satisfecho"},
-    "soltar": {"pp": "suelto"}, "ver": {"pp": "visto"},
-    "volver": {"pp": "vuelto"}, "ir": {"ger": "yendo", "pp": "ido"},
-    "ser": {"ger": "siendo", "pp": "sido"}, "pudrir": {"pp": "podrido"},
-    "leer": {"ger": "leyendo", "pp": "leído"}, "traer": {"ger": "trayendo", "pp": "traído"},
-    "caer": {"ger": "cayendo", "pp": "caído"}, "oír": {"ger": "oyendo", "pp": "oído"},
-    # Derivados con participio irregular. Estaban en PARTICIPIOS_IRREGULARES
-    # (ls.py) y faltaban aquí, de modo que los dos módulos daban formas
-    # distintas del mismo verbo (*ha resolvido / ha resuelto).
-    "encubrir": {"pp": "encubierto"}, "recubrir": {"pp": "recubierto"},
-    "describir": {"pp": "descrito"}, "inscribir": {"pp": "inscrito"},
-    "prescribir": {"pp": "prescrito"}, "proscribir": {"pp": "proscrito"},
-    "suscribir": {"pp": "suscrito"}, "transcribir": {"pp": "transcrito"},
-    "deshacer": {"pp": "deshecho"}, "rehacer": {"pp": "rehecho"},
-    "componer": {"pp": "compuesto"}, "descomponer": {"pp": "descompuesto"},
-    "disponer": {"pp": "dispuesto"}, "exponer": {"pp": "expuesto"},
-    "imponer": {"pp": "impuesto"}, "oponer": {"pp": "opuesto"},
-    "proponer": {"pp": "propuesto"}, "reponer": {"pp": "repuesto"},
+    "abrir": {"pp": "abierto"},
+    "cubrir": {"pp": "cubierto"},
+    "decir": {"ger": "diciendo", "pp": "dicho"},
+    "descubrir": {"pp": "descubierto"},
+    "escribir": {"pp": "escrito"},
+    "hacer": {"pp": "hecho"},
+    "freír": {"pp": "frito"},
+    "imprimir": {"pp": "impreso"},
+    "morir": {"ger": "muriendo", "pp": "muerto"},
+    "poner": {"pp": "puesto"},
+    "proveer": {"pp": "provisto"},
+    "romper": {"pp": "roto"},
+    "satisfacer": {"pp": "satisfecho"},
+    "soltar": {"pp": "suelto"},
+    "ver": {"pp": "visto"},
+    "volver": {"pp": "vuelto"},
+    "ir": {"ger": "yendo", "pp": "ido"},
+    "ser": {"ger": "siendo", "pp": "sido"},
+    "pudrir": {"pp": "podrido"},
+    "leer": {"ger": "leyendo", "pp": "leído"},
+    "traer": {"ger": "trayendo", "pp": "traído"},
+    "caer": {"ger": "cayendo", "pp": "caído"},
+    "oír": {"ger": "oyendo", "pp": "oído"},
+
+    # Derivados con participio irregular.
+    "encubrir": {"pp": "encubierto"},
+    "recubrir": {"pp": "recubierto"},
+    "describir": {"pp": "descrito"},
+    "inscribir": {"pp": "inscrito"},
+    "prescribir": {"pp": "prescrito"},
+    "proscribir": {"pp": "proscrito"},
+    "suscribir": {"pp": "suscrito"},
+    "transcribir": {"pp": "transcrito"},
+    "deshacer": {"pp": "deshecho"},
+    "rehacer": {"pp": "rehecho"},
+    "componer": {"pp": "compuesto"},
+    "descomponer": {"pp": "descompuesto"},
+    "disponer": {"pp": "dispuesto"},
+    "exponer": {"pp": "expuesto"},
+    "imponer": {"pp": "impuesto"},
+    "oponer": {"pp": "opuesto"},
+    "proponer": {"pp": "propuesto"},
+    "reponer": {"pp": "repuesto"},
     "suponer": {"pp": "supuesto"},
-    "absolver": {"pp": "absuelto"}, "disolver": {"pp": "disuelto"},
-    "resolver": {"pp": "resuelto"}, "devolver": {"pp": "devuelto"},
-    "envolver": {"pp": "envuelto"}, "revolver": {"pp": "revuelto"},
-    "prever": {"pp": "previsto"}, "entrever": {"pp": "entrevisto"},
-    "pedir": {"ger": "pidiendo"}, "sentir": {"ger": "sintiendo"},
-    "mentir": {"ger": "mintiendo"}, "seguir": {"ger": "siguiendo"},
-    "conseguir": {"ger": "consiguiendo"}, "perseguir": {"ger": "persiguiendo"},
-    "servir": {"ger": "sirviendo"}, "vestir": {"ger": "vistiendo"},
-    "repetir": {"ger": "repitiendo"}, "elegir": {"ger": "eligiendo"},
-    "corregir": {"ger": "corrigiendo"}, "reír": {"ger": "riendo"},
-    "sonreír": {"ger": "sonriendo"}, "venir": {"ger": "viniendo"},
-    "competir": {"ger": "compitiendo"}, "medir": {"ger": "midiendo"},
-    "despedir": {"ger": "despidiendo"}, "impedir": {"ger": "impidiendo"},
-    "dormir": {"ger": "durmiendo"}, "poder": {"ger": "pudiendo"}
-  
+    "absolver": {"pp": "absuelto"},
+    "disolver": {"pp": "disuelto"},
+    "resolver": {"pp": "resuelto"},
+    "devolver": {"pp": "devuelto"},
+    "envolver": {"pp": "envuelto"},
+    "revolver": {"pp": "revuelto"},
+    "prever": {"pp": "previsto"},
+    "entrever": {"pp": "entrevisto"},
+    "pedir": {"ger": "pidiendo"},
+    "sentir": {"ger": "sintiendo"},
+    "mentir": {"ger": "mintiendo"},
+    "seguir": {"ger": "siguiendo"},
+    "conseguir": {"ger": "consiguiendo"},
+    "perseguir": {"ger": "persiguiendo"},
+    "servir": {"ger": "sirviendo"},
+    "vestir": {"ger": "vistiendo"},
+    "repetir": {"ger": "repitiendo"},
+    "elegir": {"ger": "eligiendo"},
+    "corregir": {"ger": "corrigiendo"},
+    "reír": {"ger": "riendo"},
+    "sonreír": {"ger": "sonriendo"},
+    "venir": {"ger": "viniendo"},
+    "competir": {"ger": "compitiendo"},
+    "medir": {"ger": "midiendo"},
+    "despedir": {"ger": "despidiendo"},
+    "impedir": {"ger": "impidiendo"},
+    "dormir": {"ger": "durmiendo"},
+    "poder": {"ger": "pudiendo"}
 }
 
-ESTAR_PRETERITO = {'1s': "estuve", '2s': "estuviste", '3s': "estuvo", '1p': "estuvimos", '2p': "estuvieron", '3p': "estuvieron"}
-ESTAR = {'1s': "estoy", '2s': "estás", '3s': "está", '1p': "estamos", '2p': "están", '3p': "están"}
-ESTAR_SUBJUNTIVO = {'1s': "estuviera", '2s': "estuvieras", '3s': "estuviera", '1p': "estuviéramos", '2p': "estuvieran", '3p': "estuvieran"}
-HABER = {'1s': "he", '2s': "has", '3s': "ha", '1p': "hemos", '2p': "han", '3p': "han"}
-DEJAR = {'1s': "dejara", '2s': "dejaras", '3s': "dejara", '1p': "dejáramos", '2p': "dejaran", '3p': "dejaran"}
+ESTAR_PRETERITO = {
+    '1s': "estuve",
+    '2s': "estuviste",
+    '3s': "estuvo",
+    '1p': "estuvimos",
+    '2p': "estuvieron",
+    '3p': "estuvieron"
+}
+
+ESTAR = {
+    '1s': "estoy",
+    '2s': "estás",
+    '3s': "está",
+    '1p': "estamos",
+    '2p': "están",
+    '3p': "están"
+}
+
+ESTAR_SUBJUNTIVO = {
+    '1s': "estuviera",
+    '2s': "estuvieras",
+    '3s': "estuviera",
+    '1p': "estuviéramos",
+    '2p': "estuvieran",
+    '3p': "estuvieran"
+}
+
+HABER = {
+    '1s': "he",
+    '2s': "has",
+    '3s': "ha",
+    '1p': "hemos",
+    '2p': "han",
+    '3p': "han"
+}
+
+DEJAR = {
+    '1s': "dejara",
+    '2s': "dejaras",
+    '3s': "dejara",
+    '1p': "dejáramos",
+    '2p': "dejaran",
+    '3p': "dejaran"
+}
+
+# Ponerse en pretérito perfecto simple
+PONERSE_PRETERITO = {
+    '1s': "me puse",
+    '2s': "te pusiste",
+    '3s': "se puso",
+    '1p': "nos pusimos",
+    '2p': "se pusieron",
+    '3p': "se pusieron"
+}
 
 PERSONAS_DICT = {
     "1s": "Primera persona singular",
@@ -98,147 +183,1020 @@ PERSONAS_DICT = {
     "3p": "Tercera persona plural"
 }
 
+
 @st.cache_resource
 def load_nlp():
-    try: return spacy.load("es_core_news_sm")
-    except OSError: return None
+    try:
+        return spacy.load("es_core_news_sm")
+    except OSError:
+        return None
+
 
 nlp = load_nlp()
 
+def mayuscula_inicial(texto):
+    if not texto:
+        return texto
+    return texto[0].upper() + texto[1:]
+
+def reconstruir_infinitivo_preterito(texto_verbo, lema_spacy):
+    """
+    Corrige el lema de spaCy cuando la morfología del pretérito
+    permite recuperar el infinitivo con suficiente seguridad.
+
+    Si no puede hacerlo con seguridad, conserva el lema de spaCy.
+    """
+
+    forma = texto_verbo.lower()
+    lema = lema_spacy.lower()
+
+    # ---------------------------------------------------------
+    # 1. PRETÉRITOS FUERTES Y SUS DERIVADOS
+    # ---------------------------------------------------------
+
+    # Se analizan como familias:
+    #
+    # dije       -> decir
+    # predije    -> predecir
+    # contradije -> contradecir
+    #
+    # puse       -> poner
+    # compuse    -> componer
+    # propuse    -> proponer
+    #
+    # tuve       -> tener
+    # mantuve    -> mantener
+    # obtuve     -> obtener
+
+    familias_fuertes = {
+        "dij": "decir",
+        "traj": "traer",
+        "pus": "poner",
+        "tuv": "tener",
+        "vin": "venir",
+        "anduv": "andar",
+    }
+
+    desinencias_fuertes = (
+        "e",
+        "iste",
+        "o",
+        "imos",
+        "isteis",
+        "ieron",
+        "eron",
+    )
+
+    for raiz, infinitivo_base in familias_fuertes.items():
+        for desinencia in desinencias_fuertes:
+            terminacion = raiz + desinencia
+
+            if forma.endswith(terminacion):
+                prefijo = forma[:-len(terminacion)]
+                return prefijo + infinitivo_base
+
+    # ---------------------------------------------------------
+    # 2. OTROS PRETÉRITOS FUERTES NO PRODUCTIVOS
+    # ---------------------------------------------------------
+
+    formas_fuertes = {
+        "estuve": "estar",
+        "estuviste": "estar",
+        "estuvo": "estar",
+        "estuvimos": "estar",
+        "estuvisteis": "estar",
+        "estuvieron": "estar",
+
+        "pude": "poder",
+        "pudiste": "poder",
+        "pudo": "poder",
+        "pudimos": "poder",
+        "pudisteis": "poder",
+        "pudieron": "poder",
+
+        "supe": "saber",
+        "supiste": "saber",
+        "supo": "saber",
+        "supimos": "saber",
+        "supisteis": "saber",
+        "supieron": "saber",
+
+        "quise": "querer",
+        "quisiste": "querer",
+        "quiso": "querer",
+        "quisimos": "querer",
+        "quisisteis": "querer",
+        "quisieron": "querer",
+
+        "hice": "hacer",
+        "hiciste": "hacer",
+        "hizo": "hacer",
+        "hicimos": "hacer",
+        "hicisteis": "hacer",
+        "hicieron": "hacer",
+
+        "deshice": "deshacer",
+        "deshiciste": "deshacer",
+        "deshizo": "deshacer",
+        "deshicimos": "deshacer",
+        "deshicisteis": "deshacer",
+        "deshicieron": "deshacer",
+
+        "rehice": "rehacer",
+        "rehiciste": "rehacer",
+        "rehizo": "rehacer",
+        "rehicimos": "rehacer",
+        "rehicisteis": "rehacer",
+        "rehicieron": "rehacer",
+    }
+
+    if forma in formas_fuertes:
+        return formas_fuertes[forma]
+
+    # ---------------------------------------------------------
+    # 3. PRIMERA CONJUGACIÓN (-AR)
+    # ---------------------------------------------------------
+
+    if forma.endswith("asteis"):
+        return forma[:-6] + "ar"
+
+    if forma.endswith("aste"):
+        return forma[:-4] + "ar"
+
+    if forma.endswith("aron"):
+        return forma[:-4] + "ar"
+
+    # cantó -> cantar
+    # pero no comió, vivió, construyó, cayó...
+    if (
+        forma.endswith("ó")
+        and not forma.endswith(("ió", "yó"))
+    ):
+        return forma[:-1] + "ar"
+
+    # Alternancias ortográficas:
+    # busqué -> buscar
+    # llegué -> llegar
+    # empecé -> empezar
+    # averigüé -> averiguar
+
+    if forma.endswith("güé"):
+        return forma[:-3] + "guar"
+
+    if forma.endswith("qué"):
+        return forma[:-3] + "car"
+
+    if forma.endswith("gué"):
+        return forma[:-3] + "gar"
+
+    if forma.endswith("cé"):
+        return forma[:-2] + "zar"
+
+    # ---------------------------------------------------------
+    # 4. VERBOS EN -UIR
+    # ---------------------------------------------------------
+
+    # construí -> construir
+    # incluí -> incluir
+    # huí -> huir
+
+    if forma.endswith(("uí", "üí")):
+        return forma[:-1] + "ir"
+
+    # construiste -> construir
+    # huiste -> huir
+
+    if forma.endswith("uiste"):
+        return forma[:-4] + "ir"
+
+    # construyó -> construir
+    # incluyó -> incluir
+    # huyó -> huir
+
+    if forma.endswith("uyó"):
+        return forma[:-2] + "ir"
+
+    if forma.endswith("uyeron"):
+        return forma[:-5] + "ir"
+
+    # ---------------------------------------------------------
+    # 5. FAMILIA DE ABRIR
+    # ---------------------------------------------------------
+
+    # abrir y sus derivados son regulares en el pretérito,
+    # pero spaCy puede fallar con formas aisladas:
+    #
+    # abrí       -> abrir
+    # reabrí     -> reabrir
+    # reabriste  -> reabrir
+
+    formas_abrir = (
+        ("abristeis", "abrir"),
+        ("abrieron", "abrir"),
+        ("abriste", "abrir"),
+        ("abrimos", "abrir"),
+        ("abrió", "abrir"),
+        ("abrí", "abrir"),
+    )
+
+    for terminacion, infinitivo_base in formas_abrir:
+        if forma.endswith(terminacion):
+            prefijo = forma[:-len(terminacion)]
+            return prefijo + infinitivo_base
+
+    # ---------------------------------------------------------
+    # 6. ALGUNOS VERBOS CON HIATO
+    # ---------------------------------------------------------
+
+    formas_especiales = {
+        "oí": "oír",
+        "desoí": "desoír",
+        "leí": "leer",
+        "releí": "releer",
+        "caí": "caer",
+        "recaí": "recaer",
+        "reí": "reír",
+        "sonreí": "sonreír",
+    }
+
+    if forma in formas_especiales:
+        return formas_especiales[forma]
+
+    # ---------------------------------------------------------
+    # 7. SI spaCy YA DIO UN INFINITIVO PLAUSIBLE, SE CONSERVA
+    # ---------------------------------------------------------
+
+    if lema.endswith(("ar", "er", "ir", "ír")):
+        return lema
+
+    # Si no podemos recuperar con seguridad el infinitivo,
+    # no inventamos uno.
+    return ""
+
+
+def construir_infinitivo_con_cliticos(lema, cliticos):
+    """
+    Añade los clíticos al infinitivo y conserva correctamente
+    la posición del acento.
+
+    Ejemplos:
+        ver + lo         -> verlo
+        caer + se        -> caerse
+        oír + lo         -> oírlo
+        dar + se + lo    -> dárselo
+        decir + me + lo  -> decírmelo
+        poner + se + la  -> ponérsela
+    """
+
+    if not cliticos:
+        return lema
+
+    sufijo = "".join(cliticos)
+
+    # Con un solo clítico no cambia la acentuación gráfica
+    # del infinitivo: verlo, decirme, caerse, oírlo.
+    if len(cliticos) == 1:
+        return lema + sufijo
+
+    # Con dos o más clíticos, el acento prosódico sigue
+    # recayendo donde lo hacía en el infinitivo. La palabra
+    # resultante pasa normalmente a ser esdrújula.
+    if lema.endswith("ar"):
+        lema_acentuado = lema[:-2] + "ár"
+    elif lema.endswith("er"):
+        lema_acentuado = lema[:-2] + "ér"
+    elif lema.endswith("ir"):
+        lema_acentuado = lema[:-2] + "ír"
+    else:
+        # Para infinitivos que ya contienen una tilde,
+        # como oír o reír, no modificamos la forma.
+        lema_acentuado = lema
+
+    return lema_acentuado + sufijo
+
+
+def reemplazar_ultima_vocal(raiz, origen, destino):
+    """
+    Sustituye la última aparición de una vocal en la raíz.
+    Ej.: sent -> sint; dorm -> durm.
+    """
+    i = raiz.rfind(origen)
+
+    if i == -1:
+        return raiz
+
+    return raiz[:i] + destino + raiz[i + 1:]
+
+
+# Familias de verbos en -ir cuyo gerundio presenta e > i.
+# Como usamos endswith(), una sola entrada cubre también sus derivados:
+# sentir -> consentir, resentir, presentir...
+# ferir -> preferir, referir, inferir, transferir...
+GERUNDIO_E_I = (
+    "pedir",
+    "medir",
+    "servir",
+    "vestir",
+    "sentir",
+    "mentir",
+    "seguir",
+    "elegir",
+    "regir",
+    "petir",
+    "ferir",
+    "herir",
+    "gerir",
+    "vertir",
+    "venir",
+    "gemir",
+    "querir",
+    "henchir",
+)
+
+
+# Familias con o > u.
+GERUNDIO_O_U = (
+    "dormir",
+    "morir",
+)
+
+
+# Irregularidades que se transmiten a verbos prefijados:
+# caer -> recaer -> recayendo
+# decir -> predecir -> prediciendo
+# etc.
+GERUNDIOS_HEREDADOS = {
+    "caer": "cayendo",
+    "decir": "diciendo",
+    "leer": "leyendo",
+    "oír": "oyendo",
+    "traer": "trayendo",
+}
+
+
+def generar_gerundio(lema):
+    lema = lema.lower()
+
+    # 1. Excepción léxica ya registrada.
+    ger_irregular = IRREGULARES.get(lema, {}).get("ger")
+
+    if ger_irregular:
+        return ger_irregular
+
+    # 2. Irregularidades heredadas por prefijación.
+    # recaer -> re + cayendo
+    # predecir -> pre + diciendo
+    # desoír -> des + oyendo
+    for base, gerundio_base in GERUNDIOS_HEREDADOS.items():
+
+        if lema.endswith(base):
+
+            prefijo = lema[:-len(base)]
+
+            return prefijo + gerundio_base
+
+    # 3. Casos en -ñir / -ñer / -llir:
+    # gruñir -> gruñendo
+    # bullir -> bullendo
+    # tañer -> tañendo
+    #
+    # Algunos en -ñir presentan además e > i:
+    # ceñir -> ciñendo
+    # teñir -> tiñendo
+    # reñir -> riñendo
+    if lema.endswith(("ceñir", "teñir", "reñir")):
+
+        raiz = lema[:-2]
+        raiz = reemplazar_ultima_vocal(
+            raiz,
+            "e",
+            "i"
+        )
+
+        return raiz + "endo"
+
+    if lema.endswith(("ñir", "ñer", "llir")):
+        return lema[:-2] + "endo"
+
+    # 4. Verbos en -ir con e > i.
+    if lema.endswith(GERUNDIO_E_I):
+
+        raiz = lema[:-2]
+
+        raiz = reemplazar_ultima_vocal(
+            raiz,
+            "e",
+            "i"
+        )
+
+        return raiz + "iendo"
+
+    # 5. Verbos en -ir con o > u.
+    if lema.endswith(GERUNDIO_O_U):
+
+        raiz = lema[:-2]
+
+        raiz = reemplazar_ultima_vocal(
+            raiz,
+            "o",
+            "u"
+        )
+
+        return raiz + "iendo"
+
+    # 6. Caso ortográfico especial:
+    # argüir -> arguyendo
+    if lema.endswith("güir"):
+        return lema[:-4] + "guyendo"
+
+    # 7. Primera conjugación.
+    if lema.endswith("ar"):
+        return lema[:-2] + "ando"
+
+    # 8. Segunda y tercera conjugaciones.
+    if lema.endswith(("er", "ir")):
+
+        raiz = lema[:-2]
+
+        # Vocal + -iendo -> -yendo:
+        # creer -> creyendo
+        # construir -> construyendo
+        # huir -> huyendo
+        #
+        # Pero no distinguir -> *distinguyendo:
+        # distinguir -> distinguiendo.
+        if (
+            raiz
+            and raiz[-1] in "aeiouáéíóú"
+            and not lema.endswith(("guir", "quir"))
+        ):
+            return raiz + "yendo"
+
+        return raiz + "iendo"
+
+    return ""
+
+def generar_participio(lema):
+    lema = lema.lower()
+
+    # 1. Forma irregular registrada explícitamente.
+    part_irregular = IRREGULARES.get(
+        lema,
+        {}
+    ).get("pp")
+
+    if part_irregular:
+        return part_irregular
+
+    # 2. Familias que heredan regularmente
+    #    un participio irregular.
+    PARTICIPIOS_HEREDADOS = {
+        "abrir": "abierto",
+        "cubrir": "cubierto",
+        "scribir": "scrito",
+        "hacer": "hecho",
+        "poner": "puesto",
+        "solver": "suelto",
+        "volver": "vuelto",
+    }
+
+    for base, participio_base in PARTICIPIOS_HEREDADOS.items():
+        if lema.endswith(base):
+            prefijo = lema[:-len(base)]
+            return prefijo + participio_base
+
+    # 3. Familia de decir.
+    #
+    # predecir -> predicho
+    # contradecir -> contradicho
+    # desdecir -> desdicho
+    #
+    # bendecir y maldecir conservan aquí las formas regulares
+    # usadas en los tiempos compuestos.
+    if lema == "bendecir":
+        return "bendecido"
+
+    if lema == "maldecir":
+        return "maldecido"
+
+    if lema.endswith("decir"):
+        prefijo = lema[:-len("decir")]
+        return prefijo + "dicho"
+
+    # 4. Participios regulares en -ar.
+    if lema.endswith("ar"):
+        return lema[:-2] + "ado"
+
+    # 5. Participios regulares en -er / -ir.
+    if lema.endswith(("er", "ir", "ér", "ír")):
+        raiz = lema[:-2]
+
+        # caer -> caído
+        # leer -> leído
+        # creer -> creído
+        # oír -> oído
+        #
+        # Pero construir -> construido,
+        # huir -> huido.
+        if raiz and raiz[-1] in "aeoáéó":
+            return raiz + "ído"
+
+        return raiz + "ido"
+
+    return ""
+
+
 def analizar_automaticamente(oracion, datos):
-    if not nlp: return False, "", ""
+    if not nlp:
+        return False, "", ""
+
     doc = nlp(oracion)
-    verbo_token = next((t for t in doc if t.dep_ == "ROOT" and t.pos_ in ["VERB", "AUX"]), None)
+
+    # ---------------------------------------------------------
+    # 1. IDENTIFICAR EL VERBO PRINCIPAL
+    # ---------------------------------------------------------
+
+    verbo_token = next(
+        (
+            t for t in doc
+            if t.dep_ == "ROOT" and t.pos_ in ["VERB", "AUX"]
+        ),
+        None
+    )
+
     if not verbo_token:
-        verbo_token = next((t for t in doc if t.pos_ in ["VERB", "AUX"]), None)
-    if not verbo_token: return False, "", ""
-    
+        verbo_token = next(
+            (t for t in doc if t.pos_ in ["VERB", "AUX"]),
+            None
+        )
+
+    if not verbo_token:
+        # Con una entrada de una sola palabra, spaCy puede no
+        # etiquetar correctamente una forma verbal aislada (p. ej., «oí»).
+        # La aceptamos como candidata y dejamos que el usuario confirme
+        # después el análisis morfológico.
+        if len(doc) == 1:
+            verbo_token = doc[0]
+        else:
+            return False, "", ""
+
     idx = verbo_token.i
-    cliticos = [doc[i].text.lower() for i in range(idx-1, max(idx-5, -1), -1) if doc[i].pos_ == "PRON" and doc[i].text.lower() in ["me", "te", "se", "nos", "os", "le", "les", "lo", "los", "la", "las"]]
+
+    # ---------------------------------------------------------
+    # 2. IDENTIFICAR CLÍTICOS PREVERBALES
+    # ---------------------------------------------------------
+
+    cliticos = [
+        doc[i].text.lower()
+        for i in range(idx - 1, max(idx - 5, -1), -1)
+        if (
+            doc[i].pos_ == "PRON"
+            and doc[i].text.lower() in [
+                "me", "te", "se", "nos", "os",
+                "le", "les", "lo", "los", "la", "las"
+            ]
+        )
+    ]
+
     cliticos.reverse()
+
+    # ---------------------------------------------------------
+    # 3. OBTENER EL LEMA
+    # ---------------------------------------------------------
+
     lema_limpio = verbo_token.lemma_.lower()
     texto_verbo = verbo_token.text.lower()
-    
-    PRETERITOS_FUERTES = {"estuv": "estar", "tuv": "tener", "anduv": "andar", "pud": "poder", "pus": "poner", "sup": "saber", "hic": "hacer", "hiz": "hacer", "quis": "querer", "vin": "venir", "dij": "decir", "traj": "traer"}
-    # La raíz sola no basta: sin comprobar la desinencia, "pudrió" se analiza
-    # como poder, "vinculó" como venir, "trajinó" como traer y "supuso" como saber.
-    DESINENCIAS_PRET_FUERTE = ("e", "iste", "o", "imos", "isteis", "ieron", "eron")
+
+    # ---------------------------------------------------------
+    # 4. CORREGIR PRETÉRITOS FUERTES
+    # ---------------------------------------------------------
+
+    PRETERITOS_FUERTES = {
+        "estuv": "estar",
+        "tuv": "tener",
+        "anduv": "andar",
+        "pud": "poder",
+        "pus": "poner",
+        "sup": "saber",
+        "hic": "hacer",
+        "hiz": "hacer",
+        "quis": "querer",
+        "vin": "venir",
+        "dij": "decir",
+        "traj": "traer"
+    }
+
+    # Es necesario comprobar también la desinencia.
+    # De lo contrario, por ejemplo, "pudrió"
+    # podría confundirse con una forma de "poder".
+
+    DESINENCIAS_PRET_FUERTE = (
+        "e",
+        "iste",
+        "o",
+        "imos",
+        "isteis",
+        "ieron",
+        "eron"
+    )
+
     for raiz, inf_real in PRETERITOS_FUERTES.items():
-        if texto_verbo.startswith(raiz) and texto_verbo[len(raiz):] in DESINENCIAS_PRET_FUERTE:
+        if (
+            texto_verbo.startswith(raiz)
+            and texto_verbo[len(raiz):]
+            in DESINENCIAS_PRET_FUERTE
+        ):
             lema_limpio = inf_real
             break
-            
-    suffix = "".join(cliticos)
-    datos.infinitivo = lema_limpio + suffix
-    ger, part = IRREGULARES.get(lema_limpio, {}).get("ger", ""), IRREGULARES.get(lema_limpio, {}).get("pp", "")
-    
-    if not ger:
-        if lema_limpio.endswith("ar"): ger = lema_limpio[:-2] + "ando"
-        elif lema_limpio.endswith("eír"): ger = lema_limpio[:-3] + "iendo"   # freír > friendo
-        elif lema_limpio.endswith("güir"): ger = lema_limpio[:-4] + "guyendo"   # argüir > arguyendo
-        elif lema_limpio.endswith(("er", "ir", "ér", "ír")):
-            raiz = lema_limpio[:-2]
-            # Raíz terminada en vocal: i > y (leer > leyendo, caer > cayendo,
-            # huir > huyendo). Se excluyen -guir y -quir, donde la u no es
-            # vocal de la raíz (distinguir > distinguiendo).
-            if raiz and raiz[-1] in "aeiouáéíóú" and not lema_limpio.endswith(("guir", "quir")):
-                ger = raiz + "yendo"
-            else:
-                ger = raiz + "iendo"
-    if not part:
-        if lema_limpio.endswith("ar"): part = lema_limpio[:-2] + "ado"
-        elif lema_limpio.endswith(("er", "ir", "ér", "ír")):
-            raiz = lema_limpio[:-2]
-            # Raíz en vocal fuerte: hiato, la i lleva tilde (leído, caído, traído).
-            # Raíz en u o i: diptongo, sin tilde (huido, construido, seguido).
-            part = raiz + ("ído" if raiz and raiz[-1] in "aeoáéó" else "ido")
-        
-    datos.gerundio, datos.participio = ger, part
-    
-    if texto_verbo.endswith(("é", "í")): datos.persona_numero = "1s"
-    elif texto_verbo.endswith(("aste", "iste")): datos.persona_numero = "2s"
-    elif texto_verbo.endswith("ó"): datos.persona_numero = "3s"
+
+    # ---------------------------------------------------------
+    # 5. RECONSTRUIR EL INFINITIVO CUANDO SEA POSIBLE
+    # ---------------------------------------------------------
+
+    # Complementa la lematización de spaCy en formas del pretérito
+    # que pueden analizarse con suficiente seguridad.
+    lema_limpio = reconstruir_infinitivo_preterito(
+        texto_verbo,
+        lema_limpio
+    )
+
+    # Si no se pudo recuperar un infinitivo seguro, dejamos que
+    # la interfaz pase a la corrección manual en vez de inventar
+    # una forma morfológica.
+    if not lema_limpio:
+        return False, "", ""
+
+    # ---------------------------------------------------------
+    # 6. CONSTRUIR EL INFINITIVO CON CLÍTICOS
+    # ---------------------------------------------------------
+
+    datos.infinitivo = construir_infinitivo_con_cliticos(
+        lema_limpio,
+        cliticos
+    )
+
+    # ---------------------------------------------------------
+    # 7. GENERAR EL GERUNDIO
+    # ---------------------------------------------------------
+
+    # La generación se delega ahora en generar_gerundio(),
+    # que maneja tanto las formas regulares como familias
+    # del tipo:
+    #
+    # preferir -> prefiriendo
+    # sentir -> sintiendo
+    # dormir -> durmiendo
+    # recaer -> recayendo
+    # construir -> construyendo
+
+    ger = generar_gerundio(lema_limpio)
+
+    # ---------------------------------------------------------
+    # 8. GENERAR EL PARTICIPIO
+    # ---------------------------------------------------------
+
+    part = generar_participio(lema_limpio)
+
+    datos.gerundio = ger
+    datos.participio = part
+
+    # ---------------------------------------------------------
+    # 9. DETERMINAR PERSONA Y NÚMERO
+    # ---------------------------------------------------------
+
+    # Algunas formas del pretérito permiten reconocer
+    # directamente la persona.
+
+    if texto_verbo.endswith(("é", "í")):
+
+        datos.persona_numero = "1s"
+
+    elif texto_verbo.endswith(
+        ("aste", "iste")
+    ):
+
+        datos.persona_numero = "2s"
+
+    elif texto_verbo.endswith("ó"):
+
+        datos.persona_numero = "3s"
+
     else:
+
+        # En los demás casos utilizamos el análisis
+        # morfológico de spaCy.
+
         morph = verbo_token.morph.to_dict()
-        p, n = morph.get("Person", "3"), morph.get("Number", "Sing")
-        datos.persona_numero = {("1", "Sing"): "1s", ("2", "Sing"): "2s", ("3", "Sing"): "3s", ("1", "Plur"): "1p", ("2", "Plur"): "2p", ("3", "Plur"): "3p"}.get((p, n), "3s")
-        
+
+        p = morph.get(
+            "Person",
+            "3"
+        )
+
+        n = morph.get(
+            "Number",
+            "Sing"
+        )
+
+        datos.persona_numero = {
+            ("1", "Sing"): "1s",
+            ("2", "Sing"): "2s",
+            ("3", "Sing"): "3s",
+            ("1", "Plur"): "1p",
+            ("2", "Plur"): "2p",
+            ("3", "Plur"): "3p"
+        }.get(
+            (p, n),
+            "3s"
+        )
+
+    # ---------------------------------------------------------
+    # 10. DIVIDIR LA CLÁUSULA EN SEGMENTOS
+    # ---------------------------------------------------------
+
     datos.sujeto = doc[:idx].text.strip()
-    datos.complementos = doc[idx+1:].text.strip()
-    return True, verbo_token.text, lema_limpio
+
+    datos.complementos = (
+        doc[idx + 1:].text.strip()
+    )
+
+    # ---------------------------------------------------------
+    # 11. DEVOLVER RESULTADOS
+    # ---------------------------------------------------------
+
+    return (
+        True,
+        verbo_token.text,
+        lema_limpio
+    )
 
 def construir_perif(tipo, datos):
-    if tipo == 'gerundio_pret': v = ESTAR_PRETERITO.get(datos.persona_numero, "estuvo")
-    elif tipo == 'gerundio_pres': v = ESTAR.get(datos.persona_numero, "está")
-    elif tipo == 'gerundio_subj': v = ESTAR_SUBJUNTIVO.get(datos.persona_numero, "estuviera")
-    elif tipo == 'participio': v = HABER.get(datos.persona_numero, "ha")
-    elif tipo == 'infinitivo': return " ".join(p for p in [f"{DEJAR.get(datos.persona_numero, 'dejara')} de {datos.infinitivo}", datos.complementos] if p)
-    aux = f"{v} {datos.gerundio}" if 'gerundio' in tipo else f"{v} {datos.participio}"
-    return " ".join(p for p in [datos.sujeto, aux, datos.complementos] if p)
+    if tipo == 'gerundio_pret':
+        v = ESTAR_PRETERITO.get(
+            datos.persona_numero,
+            "estuvo"
+        )
+
+    elif tipo == 'gerundio_pres':
+        v = ESTAR.get(
+            datos.persona_numero,
+            "está"
+        )
+
+    elif tipo == 'gerundio_subj':
+        v = ESTAR_SUBJUNTIVO.get(
+            datos.persona_numero,
+            "estuviera"
+        )
+
+    elif tipo == 'participio':
+        v = HABER.get(
+            datos.persona_numero,
+            "ha"
+        )
+
+    elif tipo == 'infinitivo':
+        return " ".join(
+            p for p in [
+                f"{DEJAR.get(datos.persona_numero, 'dejara')} "
+                f"de {datos.infinitivo}",
+                datos.complementos
+            ]
+            if p
+        )
+
+    elif tipo == 'ponerse_a_infinitivo':
+
+        # Los clíticos del predicado léxico ya están incorporados
+        # en datos.infinitivo: equivocarme, verlo, caerse, etc.
+        #
+        # Se eliminan del segmento preverbal original y se añade
+        # aparte el clítico propio de la perífrasis «ponerse a».
+        #
+        # Ejemplos:
+        # Yo me equivoqué -> Yo me puse a equivocarme
+        # Juan lo vio -> Juan se puso a verlo
+        # Pedro corrió -> Pedro se puso a correr
+
+        cliticos = {
+            "me", "te", "se", "nos", "os",
+            "le", "les", "lo", "los", "la", "las"
+        }
+
+        partes_sujeto = datos.sujeto.split()
+
+        while (
+            partes_sujeto
+            and partes_sujeto[-1].lower() in cliticos
+        ):
+            partes_sujeto.pop()
+
+        sujeto_sin_cliticos = " ".join(partes_sujeto)
+
+        aux = (
+            f"{PONERSE_PRETERITO.get(datos.persona_numero, 'se puso')} "
+            f"a {datos.infinitivo}"
+        )
+
+        return " ".join(
+            p for p in [
+                sujeto_sin_cliticos,
+                aux,
+                datos.complementos
+            ]
+            if p
+        )
+
+    aux = (
+        f"{v} {datos.gerundio}"
+        if 'gerundio' in tipo
+        else f"{v} {datos.participio}"
+    )
+
+    return " ".join(
+        p for p in [
+            datos.sujeto,
+            aux,
+            datos.complementos
+        ]
+        if p
+    )
+
 
 # --- NAVEGACIÓN ---
-def ir_a(paso):
-    st.session_state.historial.append(st.session_state.akt_paso)
-    st.session_state.akt_paso = paso
+
+def ir_a(paso, rasgo=None):
+    # Si se ha determinado un rasgo, no se salta
+    # directamente a la prueba siguiente: se
+    # intercala una pantalla que lo anuncia y que
+    # exige una confirmación explícita. El destino
+    # real queda en espera.
+
+    st.session_state.historial.append(
+        st.session_state.akt_paso
+    )
+
+    if rasgo:
+        st.session_state.rasgo_aviso = rasgo
+        st.session_state.destino_tras_aviso = paso
+        st.session_state.akt_paso = 'aviso_rasgo'
+
+    else:
+        st.session_state.akt_paso = paso
+
     st.rerun()
 
+
+def continuar_tras_aviso():
+    # No se apila 'aviso_rasgo' en el historial:
+    # al volver desde la prueba siguiente se llega
+    # directamente a la prueba anterior.
+
+    st.session_state.akt_paso = (
+        st.session_state.destino_tras_aviso
+    )
+
+    st.session_state.rasgo_aviso = None
+    st.session_state.destino_tras_aviso = None
+
+    st.rerun()
+
+
 def volver():
+    st.session_state.rasgo_aviso = None
+    st.session_state.destino_tras_aviso = None
+
     if st.session_state.historial:
-        # Se decide por el paso de DESTINO, no por el actual: desde 'resultado'
-        # se regresa a 'dinamicidad' (ruta normal) o a 'estatividad' (ruta de
-        # los estados), y cada caso exige anular un rasgo distinto.
+
         destino = st.session_state.historial[-1]
-        if destino in ('causatividad', 'verificar_causa', 'evento_basico'):
+
+        if destino in (
+            'causatividad',
+            'verificar_causa',
+            'evento_basico'
+        ):
             st.session_state.rasgos.causativo = None
             st.session_state.variante_no_causativa = ""
-            # Sin esto, las pruebas seguirían aplicándose a la variante no
-            # causativa después de deshacer la descomposición.
-            st.session_state.oracion_actual = st.session_state.oracion_original
-        elif destino in ('analisis_morph', 'manual_morph'):
+            st.session_state.oracion_actual = (
+                st.session_state.oracion_original
+            )
+
+        elif destino in (
+            'analisis_morph',
+            'manual_morph'
+        ):
             st.session_state.datos = DatosClause()
+
         elif destino == 'estatividad':
             st.session_state.rasgos.estativo = None
+
         elif destino == 'puntualidad':
             st.session_state.rasgos.puntual = None
+
         elif destino == 'telicidad':
             st.session_state.rasgos.telico = None
+
         elif destino == 'dinamicidad':
             st.session_state.rasgos.dinamico = None
 
-        st.session_state.akt_paso = st.session_state.historial.pop()
+        st.session_state.akt_paso = (
+            st.session_state.historial.pop()
+        )
+
         st.rerun()
 
+
 def reiniciar_analisis():
-    for key in ['akt_paso', 'historial', 'rasgos', 'datos', 'oracion_original', 'oracion_actual', 'clausula_limpia', 'variante_no_causativa', 'reformulacion']:
+    for key in [
+        'akt_paso',
+        'historial',
+        'rasgos',
+        'datos',
+        'oracion_original',
+        'oracion_actual',
+        'clausula_limpia',
+        'variante_no_causativa',
+        'reformulacion',
+        'rasgo_aviso',
+        'destino_tras_aviso'
+    ]:
         if key in st.session_state:
             del st.session_state[key]
+
     st.rerun()
+
 
 def botones_navegacion():
     st.write("---")
+
     c1, c2 = st.columns([1, 1])
-    if c1.button("← Volver", use_container_width=True):
+
+    if c1.button(
+        "← Volver",
+        use_container_width=True
+    ):
         volver()
-    if c2.button("Iniciar nuevo análisis", use_container_width=True):
+
+    if c2.button(
+        "Iniciar nuevo análisis",
+        use_container_width=True
+    ):
         reiniciar_analisis()
+
 
 def lista_elegante(items: list):
     html_items = ""
+
     for item in items:
-        html_items += f'<div style="display: flex; align-items: flex-start; margin-bottom: 8px;"><div style="color: #4A90E2; margin-right: 10px; font-weight: bold;">•</div><div style="line-height: 1.4;">{item}</div></div>'
-    st.markdown(f'<div style="margin-bottom: 15px;">{html_items}</div>', unsafe_allow_html=True)
+        html_items += (
+            '<div style="display: flex; '
+            'align-items: flex-start; '
+            'margin-bottom: 8px;">'
+            '<div style="color: #4A90E2; '
+            'margin-right: 10px; '
+            'font-weight: bold;">•</div>'
+            '<div style="line-height: 1.4;">'
+            f'{item}'
+            '</div>'
+            '</div>'
+        )
+
+    st.markdown(
+        f'<div style="margin-bottom: 15px;">'
+        f'{html_items}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+
+def chip_rasgo(etiqueta, destacado=False):
+    clase = "rasgo-elegante"
+
+    if destacado:
+        clase += " rasgo-nuevo"
+
+    return (
+        f'<span class="{clase}">'
+        f'{etiqueta}'
+        f'</span>'
+    )
+
 
 # --- 3. INTERFAZ ---
 
 def mostrar_detector_es():
-    st.markdown("""
+
+    st.markdown(
+        """
         <style>
-        div[data-testid="stElementContainer"] > div[style*="border: 1px solid"] {
+        div[data-testid="stElementContainer"] >
+        div[style*="border: 1px solid"] {
             background-color: #fcfcfc;
             border: 1px solid #e0e0e0 !important;
             padding: 25px 25px 40px 25px;
             border-radius: 8px;
         }
+
         .header-analisis {
             color: #333333;
             font-size: 1.2em;
@@ -247,6 +1205,7 @@ def mostrar_detector_es():
             margin-bottom: 20px;
             padding-bottom: 10px;
         }
+
         .rasgo-elegante {
             display: inline-block;
             background-color: #ffffff;
@@ -259,6 +1218,75 @@ def mostrar_detector_es():
             font-weight: bold;
             font-size: 0.9em;
         }
+
+        .rasgo-nuevo {
+            animation: destello-rasgo 2.4s ease-out 1;
+        }
+
+        @keyframes destello-rasgo {
+            0% {
+                background-color: #eaf3fc;
+                border-color: #4A90E2;
+                color: #1a5a9e;
+                box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.18);
+            }
+            65% {
+                background-color: #eaf3fc;
+                border-color: #4A90E2;
+                color: #1a5a9e;
+                box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.10);
+            }
+            100% {
+                background-color: #ffffff;
+                border-color: #cccccc;
+                color: #444444;
+                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .rasgo-nuevo {
+                animation: none;
+                border-color: #4A90E2 !important;
+                background-color: #eaf3fc !important;
+            }
+        }
+
+        /* Pantalla intermedia de confirmación:
+           anuncia el rasgo recién determinado antes
+           de pasar a la prueba siguiente. */
+
+        .aviso-confirmacion {
+            background-color: #eaf3fc;
+            border-left: 4px solid #4A90E2;
+            color: #1a5a9e;
+            padding: 30px 26px;
+            border-radius: 6px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.35;
+        }
+
+        /* Misma caja, en verde, para el resultado
+           final del análisis. */
+
+        .aviso-resultado {
+            background-color: #e8f5ea;
+            border-left: 4px solid #3d9a58;
+            color: #1e6b39;
+            padding: 30px 26px;
+            border-radius: 6px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.35;
+        }
+
         .tabla-analisis {
             width: 60%;
             margin-top: 10px;
@@ -266,18 +1294,22 @@ def mostrar_detector_es():
             border-collapse: collapse;
             font-size: 0.95em;
         }
+
         .tabla-analisis th {
             text-align: left;
             padding: 8px;
             border-bottom: 2px solid #e0e0e0;
             color: #666;
         }
+
         .tabla-analisis td {
             padding: 8px;
             border-bottom: 1px solid #eee;
         }
         </style>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
 
     if 'akt_paso' not in st.session_state:
         st.session_state.akt_paso = 'inicio'
@@ -288,293 +1320,1091 @@ def mostrar_detector_es():
         st.session_state.oracion_actual = ""
         st.session_state.clausula_limpia = ""
         st.session_state.variante_no_causativa = ""
+        st.session_state.reformulacion = ""
+        st.session_state.rasgo_aviso = None
+        st.session_state.destino_tras_aviso = None
+
+    # Se consume aquí, de modo que el destello y el
+    # aviso se produzcan una sola vez, justo después
+    # de responder la prueba correspondiente.
+
+    # Etiqueta del rasgo que se está anunciando en
+    # la pantalla de confirmación. Sirve además para
+    # destacarlo en el panel derecho.
+
+    rasgo_aviso = st.session_state.get(
+        'rasgo_aviso'
+    )
 
     label_resultado = ""
-    if st.session_state.akt_paso == 'resultado':
-        res_r = st.session_state.rasgos
-        if res_r.estativo: sub = "estado"
-        elif res_r.puntual and res_r.telico: sub = "logro"
-        elif res_r.puntual and not res_r.telico: sub = "semelfactivo"    
-        elif not res_r.puntual and res_r.telico and res_r.dinamico: sub = "realización activa"
-        elif not res_r.puntual and not res_r.telico and res_r.dinamico: sub = "actividad"
-        elif not res_r.puntual and res_r.telico and not res_r.dinamico: sub = "realización"
-        else: sub = "proceso"
-        label_resultado = f"{sub} causativa" if res_r.causativo and sub in ["realización", "realización activa", "actividad"] else (f"{sub} causativo" if res_r.causativo else sub)
 
-    col_izq, col_spacer, col_der = st.columns([0.6, 0.02, 0.38])
+    if st.session_state.akt_paso == 'resultado':
+
+        res_r = st.session_state.rasgos
+
+        if res_r.estativo:
+            sub = "estado"
+
+        elif res_r.puntual and res_r.telico:
+            sub = "logro"
+
+        elif res_r.puntual and not res_r.telico:
+            sub = "semelfactivo"
+
+        elif (
+            not res_r.puntual
+            and res_r.telico
+            and res_r.dinamico
+        ):
+            sub = "realización activa"
+
+        elif (
+            not res_r.puntual
+            and not res_r.telico
+            and res_r.dinamico
+        ):
+            sub = "actividad"
+
+        elif (
+            not res_r.puntual
+            and res_r.telico
+            and not res_r.dinamico
+        ):
+            sub = "realización"
+
+        else:
+            sub = "proceso"
+
+        if (
+            res_r.causativo
+            and sub in [
+                "realización",
+                "realización activa",
+                "actividad"
+            ]
+        ):
+            label_resultado = f"{sub} causativa"
+
+        elif res_r.causativo:
+            label_resultado = f"{sub} causativo"
+
+        else:
+            label_resultado = sub
+
+    col_izq, col_spacer, col_der = st.columns(
+        [0.6, 0.02, 0.38]
+    )
 
     with col_izq:
-        if st.session_state.akt_paso == 'inicio':
-            st.write("Este programa te ayudará a identificar el aktionsart del predicado principal en una cláusula.")
-            st.write("Por favor, escribe una cláusula con el verbo que quieres probar conjugado en **pretérito** (ej.: *Pedro corrió hasta su casa*).")
-            st.write("Si suena muy extraña, o si en pretérito el verbo pasa a significar algo distinto de lo que quieres analizar, escríbela en **presente** (ej.: *María sabe inglés*, no *María supo la verdad*).")
+
+        # --- CONFIRMACIÓN DE RASGO ---
+
+        if (
+            st.session_state.akt_paso
+            == 'aviso_rasgo'
+        ):
+
+            st.write(
+                "Resultado de la prueba:"
+            )
+
+            st.markdown(
+                '<div class="aviso-confirmacion">'
+                f'El predicado es {rasgo_aviso}'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            c1, c2 = st.columns(2)
+
+            if c1.button(
+                "Continuar",
+                use_container_width=True
+            ):
+                continuar_tras_aviso()
+
+            botones_navegacion()
+
+        # --- INICIO ---
+
+        elif st.session_state.akt_paso == 'inicio':
+
+            st.write(
+                "Este programa te ayudará a identificar "
+                "el aktionsart del predicado principal "
+                "en una cláusula."
+            )
+
+            st.write(
+                "Por favor, escribe una cláusula con el "
+                "verbo que quieres probar conjugado en "
+                "**pretérito** "
+                "(ej.: *Pedro corrió hasta su casa*)."
+            )
+
+            st.write(
+                "Si suena muy extraña, o si en pretérito "
+                "el verbo pasa a significar algo distinto "
+                "de lo que quieres analizar, escríbela en "
+                "**presente** "
+                "(ej.: *María sabe inglés*, "
+                "no *María supo la verdad*)."
+            )
+
             with st.form(key="form_inicio_es"):
+
                 oracion = st.text_input("Cláusula:")
-                if st.form_submit_button("Comenzar el análisis"):
+
+                if st.form_submit_button(
+                    "Comenzar el análisis"
+                ):
                     if oracion:
-                        oracion_limpia = oracion.strip().rstrip('.')
-                        st.session_state.oracion_original = oracion_limpia
-                        st.session_state.oracion_actual = oracion_limpia
+
+                        oracion_limpia = (
+                            oracion.strip().rstrip('.')
+                        )
+
+                        st.session_state.oracion_original = (
+                            oracion_limpia
+                        )
+
+                        st.session_state.oracion_actual = (
+                            oracion_limpia
+                        )
+
                         ir_a('causatividad')
 
-        elif st.session_state.akt_paso == 'causatividad':
-            st.markdown("#### **Prueba de causatividad**")
-            st.write(f"Intenta reformular *{st.session_state.oracion_actual}* siguiendo estos modelos:")
+        # --- CAUSATIVIDAD ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'causatividad'
+        ):
+
+            st.markdown(
+                "#### **Prueba de causatividad**"
+            )
+
+            st.write(
+                f"Intenta expresar solamente el evento o estado "
+                f"que le ocurre a uno de los participantes de "
+                f"*{st.session_state.oracion_actual}*, "
+                f"sin mencionar aquello que lo causa. "
+                f"Básate en estos ejemplos:"
+            )
+
             lista_elegante([
-                "El gato rompió el jarrón → El gato <b>hizo/causó que</b> el jarrón se rompiera",
-                "Ana le dio un libro a Pepe → Ana <b>hizo/causó que</b> Pepe tuviera un libro"
+                "<i>El gato rompió el jarrón</i> → "
+                "<i>El jarrón se rompió</i>",
+
+                "<i>El sicario mató a Juan</i> → "
+                "<i>Juan murió</i>",
+
+                "<i>Ana le dio un libro a Pepe</i> → "
+                "<i>Pepe pasó a tener un libro</i>"
             ])
+
             with st.form(key="form_caus_es"):
-                reformula = st.text_input("Escribe tu reformulación:")
+
+                reformula = st.text_input(
+                    "Escribe el evento o estado:"
+                )
+
                 c1, c2 = st.columns(2)
-                if c1.form_submit_button("Siguiente"):
+
+                if c1.form_submit_button(
+                    "Siguiente",
+                    use_container_width=True
+                ):
+
                     if not reformula.strip():
-                        st.warning("Por favor, escribe tu reformulación o presiona 'No es posible reformularla'")
+
+                        st.warning(
+                            "Escribe el evento o estado, "
+                            "o presiona "
+                            "'No hay reformulación posible'."
+                        )
+
                     else:
-                        st.session_state.reformulacion = reformula
+
+                        st.session_state.reformulacion = (
+                            reformula
+                        )
+
                         ir_a('verificar_causa')
-                if c2.form_submit_button("No es posible reformularla"):
+
+                if c2.form_submit_button(
+                    "No hay reformulación posible",
+                    use_container_width=True
+                ):
+
                     st.session_state.rasgos.causativo = False
-                    ir_a('limpieza')
+
+                    ir_a(
+                        'limpieza',
+                        '[-causativo]'
+                    )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'verificar_causa':
-            st.write("Considera lo siguiente:")
+
+        # --- INDEPENDENCIA DEL EVENTO O ESTADO ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'verificar_causa'
+        ):
+
+            st.write(
+                "Considera ahora solamente este evento o estado:"
+            )
+
             lista_elegante([
-                f"<i>{st.session_state.reformulacion.capitalize()}</i> debe mantener el significado de <i>{st.session_state.oracion_actual}</i>.",
-                f"<i>{st.session_state.reformulacion.capitalize()}</i> no debe añadir nuevos argumentos ni repetir otros ya existentes en <i>{st.session_state.oracion_actual}</i>.",
-                "No debe tratarse de expresiones de consumo (<i>comer una manzana</i>) o creación (<i>escribir un cuento</i>)."
+                f"<i>"
+                f"{mayuscula_inicial(st.session_state.reformulacion)}"
+                f"</i>"
             ])
-            st.write(f"¿*{st.session_state.reformulacion.capitalize()}* cumple con estos criterios?")
+
+            st.write(
+                "¿Puedes concebir este evento o estado "
+                "independientemente de aquello que la expresión "
+                "original presenta como su causa?"
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
                 ir_a('evento_basico')
-            if c2.button("No", use_container_width=True):
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.causativo = False
-                ir_a('limpieza')
+
+                ir_a(
+                    'limpieza',
+                    '[-causativo]'
+                )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'evento_basico':
-            st.write("Escribe el evento o estado resultante sin la causa:")
-            lista_elegante([
-                "<i>El gato rompió el jarrón</i> → <i>el jarrón se rompió</i>",
-                "<i>Ana le dio un libro a Pepe</i> → <i>Pepe tiene un libro</i>"
-            ])
-            with st.form(key="form_ev_bas_es"):
-                ev = st.text_input("Escribe tu respuesta aquí:")
-                c1, c2 = st.columns(2)
-                if c1.form_submit_button("Siguiente", use_container_width=True):
-                    if ev.strip():
-                        st.session_state.rasgos.causativo = True
-                        st.session_state.variante_no_causativa = ev
-                        st.session_state.oracion_actual = ev
-                        ir_a('limpieza')
-                    else:
-                        st.warning("Por favor, ingresa el evento o presiona 'No se me ocurre ninguno'")
-                if c2.form_submit_button("No se me ocurre ninguno", use_container_width=True):
-                    st.session_state.rasgos.causativo = False
-                    ir_a('limpieza')
-            botones_navegacion()
 
-        elif st.session_state.akt_paso == 'limpieza':
-            st.write(f"Esta es la cláusula a la que aplicaremos las pruebas: *{st.session_state.oracion_actual}*")
-            st.write("Para que estas funcionen correctamente, la cláusula debe cumplir algunas condiciones formales. Asegúrate de que **no** tenga:")
+        # --- RELACIÓN CAUSAL ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'evento_basico'
+        ):
+
+            st.write(
+                "Compara ahora las dos expresiones:"
+            )
+
             lista_elegante([
-                "Expresiones de tiempo (ej: <i>ayer</i>, <i>siempre</i>, <i>el lunes</i>).",
-                "Expresiones de modo (ej: <i>rápidamente</i>, <i>bien</i>, <i>mal</i>, <i>con calma</i>).",
-                "Negaciones (ej: <i>no</i>, <i>tampoco</i>)."
+                f"<i>"
+                f"{mayuscula_inicial(st.session_state.oracion_actual)}"
+                f"</i>",
+
+                f"<i>"
+                f"{mayuscula_inicial(st.session_state.reformulacion)}"
+                f"</i>"
             ])
-            st.write("¿Tu cláusula contiene alguno de estos elementos?")
+
+            st.write(
+                "¿La expresión original afirma que aquello que "
+                "presenta como causa hizo que este evento o estado "
+                "ocurriera?"
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
+                st.session_state.rasgos.causativo = True
+
+                st.session_state.variante_no_causativa = (
+                    st.session_state.reformulacion
+                )
+
+                st.session_state.oracion_actual = (
+                    st.session_state.reformulacion
+                )
+
+                ir_a(
+                    'limpieza',
+                    '[+causativo]'
+                )
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
+                st.session_state.rasgos.causativo = False
+
+                ir_a(
+                    'limpieza',
+                    '[-causativo]'
+                )
+
+            botones_navegacion()
+
+        # --- LIMPIEZA ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'limpieza'
+        ):
+
+            st.write(
+                f"Esta es la cláusula a la que "
+                f"aplicaremos las pruebas: "
+                f"*{st.session_state.oracion_actual}*"
+            )
+
+            st.write(
+                "Para que estas funcionen correctamente, "
+                "la cláusula debe cumplir algunas "
+                "condiciones formales. Asegúrate de que "
+                "**no** tenga:"
+            )
+
+            lista_elegante([
+                "Expresiones de tiempo "
+                "(ej: <i>ayer</i>, <i>siempre</i>, "
+                "<i>el lunes</i>).",
+
+                "Expresiones de modo "
+                "(ej: <i>rápidamente</i>, "
+                "<i>bien</i>, <i>mal</i>, "
+                "<i>con calma</i>).",
+
+                "Negaciones "
+                "(ej: <i>no</i>, <i>tampoco</i>)."
+            ])
+
+            st.write(
+                "¿Tu cláusula contiene alguno "
+                "de estos elementos?"
+            )
+
+            c1, c2 = st.columns(2)
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
                 ir_a('corregir_limpieza')
-            if c2.button("No", use_container_width=True):
-                st.session_state.clausula_limpia = st.session_state.oracion_actual
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
+                st.session_state.clausula_limpia = (
+                    st.session_state.oracion_actual
+                )
+
                 ir_a('analisis_morph')
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'corregir_limpieza':
+        # --- CORREGIR LIMPIEZA ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'corregir_limpieza'
+        ):
+
             with st.form(key="form_limp_act_es"):
-                nueva = st.text_input(f"Por favor, escribe *{st.session_state.oracion_actual}* de nuevo **sin** esos elementos (ej.: *Pedro corrió hasta su casa* en vez de *Pedro nunca corrió rápidamente hasta su casa ayer*):")
-                if st.form_submit_button("Actualizar"):
+
+                nueva = st.text_input(
+                    f"Por favor, escribe "
+                    f"*{st.session_state.oracion_actual}* "
+                    f"de nuevo **sin** esos elementos "
+                    f"(ej.: *Pedro corrió hasta su casa* "
+                    f"en vez de *Pedro nunca corrió "
+                    f"rápidamente hasta su casa ayer*):"
+                )
+
+                if st.form_submit_button(
+                    "Actualizar"
+                ):
+
                     if nueva:
-                        st.session_state.oracion_actual = nueva
-                        st.session_state.clausula_limpia = nueva
+
+                        st.session_state.oracion_actual = (
+                            nueva
+                        )
+
+                        st.session_state.clausula_limpia = (
+                            nueva
+                        )
+
                         ir_a('analisis_morph')
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'analisis_morph':
-            exito, v_vis, l_vis = analizar_automaticamente(st.session_state.oracion_actual, st.session_state.datos)
+        # --- ANÁLISIS MORFOLÓGICO ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'analisis_morph'
+        ):
+
+            exito, v_vis, l_vis = (
+                analizar_automaticamente(
+                    st.session_state.oracion_actual,
+                    st.session_state.datos
+                )
+            )
+
             if exito:
-                st.write(f"Este es un análisis de algunos de los rasgos morfológicos y estructurales de **{st.session_state.oracion_actual}**")
+
+                st.write(
+                    f"Este es un análisis de algunos de "
+                    f"los rasgos morfológicos y "
+                    f"estructurales de "
+                    f"**{st.session_state.oracion_actual}**"
+                )
+
                 d = st.session_state.datos
+
                 html_tabla = f"""
                 <table class="tabla-analisis">
                     <tbody>
-                        <tr><td><b>Verbo</b></td><td>{v_vis.lower()}</td></tr>
-                        <tr><td><b>Infinitivo</b></td><td>{l_vis}</td></tr>
-                        <tr><td><b>Gerundio</b></td><td>{d.gerundio}</td></tr>
-                        <tr><td><b>Participio (masculino singular)</b></td><td>{d.participio}</td></tr>
-                        <tr><td><b>Antes del verbo</b></td><td>{d.sujeto if d.sujeto else "no hay nada"}</td></tr>
-                        <tr><td><b>Después del verbo</b></td><td>{d.complementos if d.complementos else "no hay nada"}</td></tr>
+                        <tr>
+                            <td><b>Verbo</b></td>
+                            <td>{v_vis.lower()}</td>
+                        </tr>
+                        <tr>
+                            <td><b>Infinitivo</b></td>
+                            <td>{l_vis}</td>
+                        </tr>
+                        <tr>
+                            <td><b>Gerundio</b></td>
+                            <td>{d.gerundio}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <b>
+                                    Participio
+                                    (masculino singular)
+                                </b>
+                            </td>
+                            <td>{d.participio}</td>
+                        </tr>
+                        <tr>
+                            <td><b>Antes del verbo</b></td>
+                            <td>
+                                {
+                                    d.sujeto
+                                    if d.sujeto
+                                    else "no hay nada"
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>Después del verbo</b></td>
+                            <td>
+                                {
+                                    d.complementos
+                                    if d.complementos
+                                    else "no hay nada"
+                                }
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
                 """
-                st.markdown(html_tabla, unsafe_allow_html=True)
-                st.write("¿Es correcto este análisis?")
+
+                st.markdown(
+                    html_tabla,
+                    unsafe_allow_html=True
+                )
+
+                st.write(
+                    "¿Es correcto este análisis?"
+                )
+
                 c1, c2 = st.columns(2)
-                if c1.button("Sí", use_container_width=True): ir_a('estatividad')
-                if c2.button("No", use_container_width=True): ir_a('manual_morph')
+
+                if c1.button(
+                    "Sí",
+                    use_container_width=True
+                ):
+                    ir_a('estatividad')
+
+                if c2.button(
+                    "No",
+                    use_container_width=True
+                ):
+                    ir_a('manual_morph')
+
                 botones_navegacion()
+
             else:
+
                 ir_a('manual_morph')
 
-        elif st.session_state.akt_paso == 'manual_morph':
-            st.info("Por favor, agrega o corrige la información que sea necesaria:")
+        # --- CORRECCIÓN MANUAL ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'manual_morph'
+        ):
+
+            st.info(
+                "Por favor, agrega o corrige "
+                "la información que sea necesaria:"
+            )
+
             with st.form(key="form_m_save"):
+
                 d = st.session_state.datos
-                d.infinitivo = st.text_input(f"Escribe el **infinitivo** del verbo en *{st.session_state.oracion_actual}*, incluyendo los clíticos que haya:", d.infinitivo)
-                d.gerundio = st.text_input(f"Escribe el **gerundio** del verbo en *{st.session_state.oracion_actual}*, sin clíticos:", d.gerundio)
-                d.participio = st.text_input(f"Escribe el **participio** (masculino singular) del verbo en *{st.session_state.oracion_actual}*:", d.participio)
-                d.sujeto = st.text_input(f"Escribe todo lo que hay **antes** del verbo en *{st.session_state.oracion_actual}*, incluyendo los clíticos, si los hay:", d.sujeto)
-                d.complementos = st.text_input(f"Escribe todo lo que hay **después** del verbo en *{st.session_state.oracion_actual}*:", d.complementos)
-                idx_actual = list(PERSONAS_DICT.keys()).index(d.persona_numero) if d.persona_numero in PERSONAS_DICT else 2
+
+                d.infinitivo = st.text_input(
+                    f"Escribe el **infinitivo** del verbo "
+                    f"en *{st.session_state.oracion_actual}*, "
+                    f"incluyendo los clíticos que haya:",
+                    d.infinitivo
+                )
+
+                d.gerundio = st.text_input(
+                    f"Escribe el **gerundio** del verbo "
+                    f"en *{st.session_state.oracion_actual}*, "
+                    f"sin clíticos:",
+                    d.gerundio
+                )
+
+                d.participio = st.text_input(
+                    f"Escribe el **participio** "
+                    f"(masculino singular) del verbo en "
+                    f"*{st.session_state.oracion_actual}*:",
+                    d.participio
+                )
+
+                d.sujeto = st.text_input(
+                    f"Escribe todo lo que hay "
+                    f"**antes** del verbo en "
+                    f"*{st.session_state.oracion_actual}*, "
+                    f"incluyendo los clíticos, si los hay:",
+                    d.sujeto
+                )
+
+                d.complementos = st.text_input(
+                    f"Escribe todo lo que hay "
+                    f"**después** del verbo en "
+                    f"*{st.session_state.oracion_actual}*:",
+                    d.complementos
+                )
+
+                idx_actual = (
+                    list(PERSONAS_DICT.keys()).index(
+                        d.persona_numero
+                    )
+                    if d.persona_numero in PERSONAS_DICT
+                    else 2
+                )
+
                 d.persona_numero = st.selectbox(
-                    "Selecciona la persona y número del verbo:", 
-                    options=list(PERSONAS_DICT.keys()),
-                    format_func=lambda x: PERSONAS_DICT[x],
+                    "Selecciona la persona y "
+                    "número del verbo:",
+                    options=list(
+                        PERSONAS_DICT.keys()
+                    ),
+                    format_func=lambda x: (
+                        PERSONAS_DICT[x]
+                    ),
                     index=idx_actual
                 )
+
                 if st.form_submit_button("Guardar"):
                     ir_a('estatividad')
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'estatividad':
-            st.markdown("#### **Prueba de estatividad**")
-            st.write("Observa los siguientes diálogos:")
-            
+        # --- ESTATIVIDAD ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'estatividad'
+        ):
+
+            st.markdown(
+                "#### **Prueba de estatividad**"
+            )
+
+            st.write(
+                "Observa los siguientes diálogos:"
+            )
+
             cd1, cd2, cd3 = st.columns(3)
+
             with cd1:
-                st.markdown(f"— ¿Qué pasó hace un rato?<br>— <i>{st.session_state.oracion_actual.capitalize()}</i>.", unsafe_allow_html=True)
+                st.markdown(
+                    f"— ¿Qué pasó hace un rato?<br>"
+                    f"— <i>"
+                    f"{mayuscula_inicial(st.session_state.oracion_actual)}"
+                    f"</i>.",
+                    unsafe_allow_html=True
+                )
+
             with cd2:
-                st.markdown(f"— ¿Qué pasó ayer?<br>— <i>{st.session_state.oracion_actual.capitalize()}</i>.", unsafe_allow_html=True)
+                st.markdown(
+                    f"— ¿Qué pasó ayer?<br>"
+                    f"— <i>"
+                    f"{mayuscula_inicial(st.session_state.oracion_actual)}"
+                    f"</i>.",
+                    unsafe_allow_html=True
+                )
+
             with cd3:
-                st.markdown(f"— ¿Qué pasó el mes pasado?<br>— <i>{st.session_state.oracion_actual.capitalize()}</i>.", unsafe_allow_html=True)
-            
-            st.write(f"¿Te parece que *{st.session_state.oracion_actual}* es una buena respuesta a, al menos, una de estas preguntas?")
+                st.markdown(
+                    f"— ¿Qué pasó el mes pasado?<br>"
+                    f"— <i>"
+                    f"{mayuscula_inicial(st.session_state.oracion_actual)}"
+                    f"</i>.",
+                    unsafe_allow_html=True
+                )
+
+            st.write(
+                f"¿Te parece que "
+                f"*{st.session_state.oracion_actual}* "
+                f"es una buena respuesta a, al menos, "
+                f"una de estas preguntas?"
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.estativo = False
-                ir_a('puntualidad')
-            if c2.button("No", use_container_width=True):
+
+                ir_a(
+                    'puntualidad',
+                    '[-estativo]'
+                )
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.estativo = True
-                ir_a('resultado')
+
+                ir_a(
+                    'resultado',
+                    '[+estativo]'
+                )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'puntualidad':
-            st.markdown("#### **Prueba de puntualidad**")
-            p = construir_perif('gerundio_pret', st.session_state.datos)
-            st.write("Observa estas expresiones:")
+        # --- PUNTUALIDAD ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'puntualidad'
+        ):
+
+            st.markdown(
+                "#### **Prueba de puntualidad**"
+            )
+
+            p = construir_perif(
+                'gerundio_pret',
+                st.session_state.datos
+            )
+
+            st.write(
+                "Observa estas expresiones:"
+            )
+
             lista_elegante([
-                f"<i>{p.capitalize()} durante una hora.</i>",
-                f"<i>{p.capitalize()} durante un mes.</i>"
+                f"<i>{mayuscula_inicial(p)} "
+                f"durante una hora.</i>",
+
+                f"<i>{mayuscula_inicial(p)} "
+                f"durante un mes.</i>"
             ])
-            st.write("¿Es alguna de estas una expresión posible? **(Si la expresión tiene sentido iterativo o de inminencia, responde que no)**.", unsafe_allow_html=True)
+
+            st.write(
+                "¿Es alguna de estas una expresión "
+                "posible? **(Si la expresión tiene "
+                "sentido iterativo o de inminencia, "
+                "responde que no)**.",
+                unsafe_allow_html=True
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.puntual = False
-                ir_a('telicidad')
-            if c2.button("No", use_container_width=True):
+
+                ir_a(
+                    'telicidad',
+                    '[-puntual]'
+                )
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.puntual = True
-                ir_a('telicidad')
+
+                ir_a(
+                    'telicidad',
+                    '[+puntual]'
+                )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'telicidad':
-            st.markdown("#### **Prueba de telicidad**")
-            p_ger = construir_perif('gerundio_subj', st.session_state.datos)
-            p_inf = construir_perif('infinitivo', st.session_state.datos)
-            p_par = construir_perif('participio', st.session_state.datos)
-            st.write(f"Imagina que {p_ger} y de pronto {p_inf}.")
-            st.write(f"¿Se podría decir que *{p_par}*?")
+        # --- TELICIDAD ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'telicidad'
+        ):
+
+            st.markdown(
+                "#### **Prueba de telicidad**"
+            )
+
+            p_ger = construir_perif(
+                'gerundio_subj',
+                st.session_state.datos
+            )
+
+            p_inf = construir_perif(
+                'infinitivo',
+                st.session_state.datos
+            )
+
+            p_par = construir_perif(
+                'participio',
+                st.session_state.datos
+            )
+
+            st.write(
+                f"Imagina que {p_ger} "
+                f"y de pronto {p_inf}."
+            )
+
+            st.write(
+                f"¿Se podría decir que "
+                f"*{p_par}*?"
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.telico = False
-                ir_a('dinamicidad')
-            if c2.button("No", use_container_width=True):
+
+                ir_a(
+                    'dinamicidad',
+                    '[-télico]'
+                )
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
                 st.session_state.rasgos.telico = True
-                ir_a('dinamicidad')
+
+                ir_a(
+                    'dinamicidad',
+                    '[+télico]'
+                )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'dinamicidad':
-            st.markdown("#### **Prueba de dinamicidad**")
-            if st.session_state.rasgos.puntual:
-                # Con predicados puntuales el progresivo coerciona la lectura hacia
-                # lo iterativo o lo inminente y la prueba deja de medir dinamicidad.
-                # Se usa la cláusula simple, igual que en ls.py (paso 'dinamicidad').
-                p = st.session_state.oracion_actual
-            else:
-                p = construir_perif('gerundio_pres', st.session_state.datos)
-            st.write("Observa estas expresiones:")
+        # --- DINAMICIDAD ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'dinamicidad'
+        ):
+
+            st.markdown(
+                "#### **Prueba de dinamicidad**"
+            )
+
+            # NUEVO TEST:
+            # compatibilidad con
+            # «ponerse a + infinitivo»
+            # en pretérito perfecto simple.
+
+            p = construir_perif(
+                'ponerse_a_infinitivo',
+                st.session_state.datos
+            )
+
+            st.write(
+                "Observa esta expresión:"
+            )
+
             lista_elegante([
-                f"<i>{p.capitalize()} enérgicamente</i>.",
-                f"<i>{p.capitalize()} con fuerza</i>.",
-                f"<i>{p.capitalize()} vigorosamente</i>."
+                f"<i>{mayuscula_inicial(p)}.</i>"
             ])
-            st.write("¿Te parecería natural decir algunas de estas expresiones?")
+
+            st.write(
+                "¿Te parece natural esta expresión?"
+            )
+
             c1, c2 = st.columns(2)
-            if c1.button("Sí", use_container_width=True):
+
+            if c1.button(
+                "Sí",
+                use_container_width=True
+            ):
+
+                # Compatible con ponerse a + infinitivo
+                # = [+dinámico]
                 st.session_state.rasgos.dinamico = True
-                ir_a('resultado')
-            if c2.button("No", use_container_width=True):
+
+                ir_a(
+                    'resultado',
+                    '[+dinámico]'
+                )
+
+            if c2.button(
+                "No",
+                use_container_width=True
+            ):
+
+                # Incompatible con ponerse a + infinitivo
+                # = [-dinámico]
                 st.session_state.rasgos.dinamico = False
-                ir_a('resultado')
+
+                ir_a(
+                    'resultado',
+                    '[-dinámico]'
+                )
+
             botones_navegacion()
 
-        elif st.session_state.akt_paso == 'resultado':
-            st.markdown("### Análisis finalizado")
-            st.write(f"El aktionsart de la cláusula **{st.session_state.oracion_original}** es **{label_resultado}**")
-            
-            # --- MODIFICACIÓN DE BOTONES (3 COLUMNAS) ---
-            c1, c2, c3 = st.columns([1, 1, 1])
-            if c1.button("Analizar otro predicado", use_container_width=True):
+        # --- RESULTADO ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'resultado'
+        ):
+
+            st.markdown(
+                "### Análisis finalizado"
+            )
+
+            st.markdown(
+                '<div class="aviso-resultado">'
+                f'El aktionsart de la cláusula '
+                f'<i>{st.session_state.oracion_original}</i> '
+                f'es {label_resultado}'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            c1, c2, c3 = st.columns(
+                [1, 1, 1]
+            )
+
+            if c1.button(
+                "Analizar otro predicado",
+                use_container_width=True
+            ):
                 reiniciar_analisis()
-            if c2.button("← Volver a la última prueba", use_container_width=True):
+
+            if c2.button(
+                "← Volver a la última prueba",
+                use_container_width=True
+            ):
                 volver()
-            if c3.button("Obtener Estructura Lógica", use_container_width=True):
-                st.session_state.ls_akt = label_resultado.lower()
-                st.session_state.ls_oracion = st.session_state.oracion_original
-                st.session_state.ls_es_dinamico = st.session_state.rasgos.dinamico
+
+            if c3.button(
+                "Obtener Estructura Lógica",
+                use_container_width=True
+            ):
+
+                st.session_state.ls_akt = (
+                    label_resultado.lower()
+                )
+
+                st.session_state.ls_oracion = (
+                    st.session_state.oracion_original
+                )
+
+                st.session_state.ls_es_dinamico = (
+                    st.session_state.rasgos.dinamico
+                )
+
                 st.session_state.seccion = 'ls'
+
                 st.rerun()
 
+    # --- PANEL DERECHO ---
+
     with col_der:
+
         with st.container(border=True):
-            st.markdown('<div class="header-analisis">Estado del análisis</div>', unsafe_allow_html=True)
+
+            st.markdown(
+                '<div class="header-analisis">'
+                'Estado del análisis'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
             if st.session_state.oracion_original:
-                st.write("**Cláusula bajo análisis:**")
-                st.info(st.session_state.oracion_original)
+
+                st.write(
+                    "**Cláusula bajo análisis:**"
+                )
+
+                st.info(
+                    st.session_state.oracion_original
+                )
+
             if st.session_state.variante_no_causativa:
-                st.write("**Variante no causativa:**")
-                st.info(st.session_state.variante_no_causativa)
+
+                st.write(
+                    "**Variante no causativa:**"
+                )
+
+                st.info(
+                    st.session_state.variante_no_causativa
+                )
+
             if st.session_state.clausula_limpia:
-                st.write("**Cláusula limpia:**")
-                st.info(st.session_state.clausula_limpia)
-            st.write("**Rasgos detectados:**")
+
+                st.write(
+                    "**Cláusula limpia:**"
+                )
+
+                st.info(
+                    st.session_state.clausula_limpia
+                )
+
+            st.write(
+                "**Rasgos detectados:**"
+            )
+
             r = st.session_state.rasgos
+
             row_caus = ""
+
             if r.causativo is not None:
-                row_caus = f'<div style="margin-bottom: 25px;"><span class="rasgo-elegante">[{"+" if r.causativo else "-"}causativo]</span></div>'
-            row_otros = '<div style="margin-bottom: 15px;">'
-            if r.estativo is not None: row_otros += f'<span class="rasgo-elegante">[{"+" if r.estativo else "-"}estativo]</span>'
-            if r.puntual is not None: row_otros += f'<span class="rasgo-elegante">[{"+" if r.puntual else "-"}puntual]</span>'
-            if r.telico is not None: row_otros += f'<span class="rasgo-elegante">[{"+" if r.telico else "-"}télico]</span>'
-            if r.dinamico is not None: row_otros += f'<span class="rasgo-elegante">[{"+" if r.dinamico else "-"}dinámico]</span>'
+
+                etq = (
+                    f'[{"+" if r.causativo else "-"}'
+                    f'causativo]'
+                )
+
+                row_caus = (
+                    '<div style="margin-bottom: 25px;">'
+                    + chip_rasgo(
+                        etq,
+                        etq == rasgo_aviso
+                    )
+                    + '</div>'
+                )
+
+            row_otros = (
+                '<div style="margin-bottom: 15px;">'
+            )
+
+            if r.estativo is not None:
+
+                etq = (
+                    f'[{"+" if r.estativo else "-"}'
+                    f'estativo]'
+                )
+
+                row_otros += chip_rasgo(
+                    etq,
+                    etq == rasgo_aviso
+                )
+
+            if r.puntual is not None:
+
+                etq = (
+                    f'[{"+" if r.puntual else "-"}'
+                    f'puntual]'
+                )
+
+                row_otros += chip_rasgo(
+                    etq,
+                    etq == rasgo_aviso
+                )
+
+            if r.telico is not None:
+
+                etq = (
+                    f'[{"+" if r.telico else "-"}'
+                    f'télico]'
+                )
+
+                row_otros += chip_rasgo(
+                    etq,
+                    etq == rasgo_aviso
+                )
+
+            if r.dinamico is not None:
+
+                etq = (
+                    f'[{"+" if r.dinamico else "-"}'
+                    f'dinámico]'
+                )
+
+                row_otros += chip_rasgo(
+                    etq,
+                    etq == rasgo_aviso
+                )
+
             row_otros += "</div>"
-            st.markdown(row_caus + row_otros, unsafe_allow_html=True)
-            
-            if st.session_state.akt_paso == 'resultado':
-                st.markdown('<br><div class="header-analisis">Resultado</div>', unsafe_allow_html=True)
-                st.success(f"**{label_resultado.upper()}**")
+
+            st.markdown(
+                row_caus + row_otros,
+                unsafe_allow_html=True
+            )
+
+            if (
+                st.session_state.akt_paso
+                == 'resultado'
+            ):
+
+                st.markdown(
+                    '<br>'
+                    '<div class="header-analisis">'
+                    'Resultado'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
+                st.success(
+                    f"**{label_resultado.upper()}**"
+                )
+
 
 if __name__ == "__main__":
     mostrar_detector_es()

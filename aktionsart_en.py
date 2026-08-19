@@ -363,12 +363,30 @@ def build_stop(data: ClauseData) -> str:
     return " ".join(p for p in parts if p)
 
 # --- NAVIGATION ---
-def go_to(step):
+def go_to(step, feature=None):
+    # When a feature has been determined, an intermediate screen announcing it
+    # is inserted before the next test; the real destination waits in
+    # session_state.
     st.session_state.history.append(st.session_state.akt_step)
-    st.session_state.akt_step = step
+    if feature:
+        st.session_state.feature_notice = feature
+        st.session_state.destination_after_notice = step
+        st.session_state.akt_step = 'feature_notice'
+    else:
+        st.session_state.akt_step = step
+    st.rerun()
+
+def continue_after_notice():
+    # 'feature_notice' is not pushed onto the history: going back from the next
+    # test lands directly on the previous one.
+    st.session_state.akt_step = st.session_state.destination_after_notice
+    st.session_state.feature_notice = None
+    st.session_state.destination_after_notice = None
     st.rerun()
 
 def go_back():
+    st.session_state.feature_notice = None
+    st.session_state.destination_after_notice = None
     if st.session_state.history:
         # Decided by the DESTINATION step, not the current one: from 'result'
         # you can return to 'dynamicity' (normal path) or to 'stativity' (state
@@ -395,7 +413,7 @@ def go_back():
         st.rerun()
 
 def restart_analysis():
-    for key in ['akt_step', 'history', 'features', 'data', 'original_clause', 'current_clause', 'clean_clause', 'non_causative_variant', 'paraphrase']:
+    for key in ['akt_step', 'history', 'features', 'data', 'original_clause', 'current_clause', 'clean_clause', 'non_causative_variant', 'paraphrase', 'feature_notice', 'destination_after_notice']:
         if key in st.session_state:
             del st.session_state[key]
     st.rerun()
@@ -413,6 +431,13 @@ def elegant_list(items: list):
     for item in items:
         html_items += f'<div style="display: flex; align-items: flex-start; margin-bottom: 8px;"><div style="color: #4A90E2; margin-right: 10px; font-weight: bold;">•</div><div style="line-height: 1.4;">{item}</div></div>'
     st.markdown(f'<div style="margin-bottom: 15px;">{html_items}</div>', unsafe_allow_html=True)
+
+def capitalize_first(text):
+    return text[0].upper() + text[1:] if text else text
+
+def feature_chip(label, highlighted=False):
+    css_class = "rasgo-elegante rasgo-nuevo" if highlighted else "rasgo-elegante"
+    return f'<span class="{css_class}">{label}</span>'
 
 # --- 3. INTERFACE ---
 
@@ -445,6 +470,62 @@ def mostrar_detector_en():
             font-weight: bold;
             font-size: 0.9em;
         }
+        .rasgo-nuevo {
+            animation: destello-rasgo 2.4s ease-out 1;
+        }
+        @keyframes destello-rasgo {
+            0% {
+                background-color: #eaf3fc;
+                border-color: #4A90E2;
+                color: #1a5a9e;
+                box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.18);
+            }
+            65% {
+                background-color: #eaf3fc;
+                border-color: #4A90E2;
+                color: #1a5a9e;
+                box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.10);
+            }
+            100% {
+                background-color: #ffffff;
+                border-color: #cccccc;
+                color: #444444;
+                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .rasgo-nuevo {
+                animation: none;
+                border-color: #4A90E2 !important;
+                background-color: #eaf3fc !important;
+            }
+        }
+        .aviso-confirmacion {
+            background-color: #eaf3fc;
+            border-left: 4px solid #4A90E2;
+            color: #1a5a9e;
+            padding: 30px 26px;
+            border-radius: 6px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.35;
+        }
+        .aviso-resultado {
+            background-color: #e8f5ea;
+            border-left: 4px solid #3d9a58;
+            color: #1e6b39;
+            padding: 30px 26px;
+            border-radius: 6px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.35;
+        }
         .tabla-analisis {
             width: 60%;
             margin-top: 10px;
@@ -474,6 +555,13 @@ def mostrar_detector_en():
         st.session_state.current_clause = ""
         st.session_state.clean_clause = ""
         st.session_state.non_causative_variant = ""
+        st.session_state.paraphrase = ""
+        st.session_state.feature_notice = None
+        st.session_state.destination_after_notice = None
+
+    # Label of the feature being announced on the confirmation screen; also used
+    # to highlight it in the right-hand panel.
+    feature_notice = st.session_state.get('feature_notice')
 
     label_result = ""
     if st.session_state.akt_step == 'result':
@@ -490,7 +578,15 @@ def mostrar_detector_en():
     col_left, col_spacer, col_right = st.columns([0.6, 0.02, 0.38])
 
     with col_left:
-        if st.session_state.akt_step == 'start':
+        if st.session_state.akt_step == 'feature_notice':
+            st.write("Test result:")
+            st.markdown(f'<div class="aviso-confirmacion">The predicate is {feature_notice}</div>', unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            if c1.button("Continue", use_container_width=True):
+                continue_after_notice()
+            navigation_buttons()
+
+        elif st.session_state.akt_step == 'start':
             st.write("This program will help you identify the aktionsart of the main predicate in a clause.")
             st.write("Please type a clause with the verb you want to test conjugated in the **simple past** (e.g., *Peter ran home*).")
             st.write("If it sounds very odd, type it in **present** (e.g., *Mary knows English*).")
@@ -505,61 +601,56 @@ def mostrar_detector_en():
 
         elif st.session_state.akt_step == 'causativity':
             st.markdown("#### **Causativity test**")
-            st.write(f"Try to paraphrase *{st.session_state.current_clause}* following these models:")
+            st.write(f"Try to express only the event or state that happens to one of the participants in *{st.session_state.current_clause}*, without mentioning what causes it. Use these examples as models:")
             elegant_list([
-                "The cat broke the vase → The cat <b>caused</b> the vase to break",
-                "Ana gave Pepe a book → Ana <b>caused</b> Pepe to have a book"
+                "<i>The cat broke the vase</i> → <i>The vase broke</i>",
+                "<i>The hitman killed John</i> → <i>John died</i>",
+                "<i>Ana gave Pepe a book</i> → <i>Pepe came to have a book</i>"
             ])
             with st.form(key="form_caus_en"):
-                paraphrase = st.text_input("Type your paraphrase:")
+                paraphrase = st.text_input("Type the event or state:")
                 c1, c2 = st.columns(2)
-                if c1.form_submit_button("Next"):
+                if c1.form_submit_button("Next", use_container_width=True):
                     if not paraphrase.strip():
-                        st.warning("Please type your paraphrase, or press 'Not possible to paraphrase'")
+                        st.warning("Please type the event or state, or press 'There is no possible reformulation'.")
                     else:
                         st.session_state.paraphrase = paraphrase
                         go_to('verify_cause')
-                if c2.form_submit_button("Not possible to paraphrase"):
+                if c2.form_submit_button("There is no possible reformulation", use_container_width=True):
                     st.session_state.features.causative = False
-                    go_to('cleanup')
+                    go_to('cleanup', '[-causative]')
             navigation_buttons()
 
+        # --- INDEPENDENCE OF THE EVENT OR STATE ---
         elif st.session_state.akt_step == 'verify_cause':
-            st.write("Consider the following:")
-            elegant_list([
-                f"<i>{st.session_state.paraphrase[0].upper() + st.session_state.paraphrase[1:]}</i> should preserve the meaning of <i>{st.session_state.current_clause}</i>.",
-                f"<i>{st.session_state.paraphrase[0].upper() + st.session_state.paraphrase[1:]}</i> must not add new arguments nor duplicate existing ones in <i>{st.session_state.current_clause}</i>.",
-                "Exclude consumption (<i>eat an apple</i>) and creation (<i>write a story</i>) readings."
-            ])
-            st.write(f"Does *{st.session_state.paraphrase[0].upper() + st.session_state.paraphrase[1:]}* meet these criteria?")
+            st.write("Now consider only this event or state:")
+            elegant_list([f"<i>{capitalize_first(st.session_state.paraphrase)}</i>"])
+            st.write("Can you conceive of this event or state independently of what the original expression presents as its cause?")
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 go_to('basic_event')
             if c2.button("No", use_container_width=True):
                 st.session_state.features.causative = False
-                go_to('cleanup')
+                go_to('cleanup', '[-causative]')
             navigation_buttons()
 
+        # --- CAUSAL RELATION ---
         elif st.session_state.akt_step == 'basic_event':
-            st.write("Type the resulting event or state without the cause:")
+            st.write("Now compare the two expressions:")
             elegant_list([
-                "<i>The cat broke the vase</i> → <i>the vase broke</i>",
-                "<i>Ana gave Pepe a book</i> → <i>Pepe has a book</i>"
+                f"<i>{capitalize_first(st.session_state.current_clause)}</i>",
+                f"<i>{capitalize_first(st.session_state.paraphrase)}</i>"
             ])
-            with st.form(key="form_ev_bas_en"):
-                ev = st.text_input("Type your answer here:")
-                c1, c2 = st.columns(2)
-                if c1.form_submit_button("Next", use_container_width=True):
-                    if ev.strip():
-                        st.session_state.features.causative = True
-                        st.session_state.non_causative_variant = ev
-                        st.session_state.current_clause = ev
-                        go_to('cleanup')
-                    else:
-                        st.warning("Please enter the event or press 'I can't think of one'")
-                if c2.form_submit_button("I can't think of one", use_container_width=True):
-                    st.session_state.features.causative = False
-                    go_to('cleanup')
+            st.write("Does the original expression assert that what it presents as the cause made this event or state happen?")
+            c1, c2 = st.columns(2)
+            if c1.button("Yes", use_container_width=True):
+                st.session_state.features.causative = True
+                st.session_state.non_causative_variant = st.session_state.paraphrase
+                st.session_state.current_clause = st.session_state.paraphrase
+                go_to('cleanup', '[+causative]')
+            if c2.button("No", use_container_width=True):
+                st.session_state.features.causative = False
+                go_to('cleanup', '[-causative]')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'cleanup':
@@ -651,10 +742,10 @@ def mostrar_detector_en():
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 st.session_state.features.stative = False
-                go_to('punctuality')
+                go_to('punctuality', '[-stative]')
             if c2.button("No", use_container_width=True):
                 st.session_state.features.stative = True
-                go_to('result')
+                go_to('result', '[+stative]')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'punctuality':
@@ -669,10 +760,10 @@ def mostrar_detector_en():
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 st.session_state.features.punctual = False
-                go_to('telicity')
+                go_to('telicity', '[-punctual]')
             if c2.button("No", use_container_width=True):
                 st.session_state.features.punctual = True
-                go_to('telicity')
+                go_to('telicity', '[+punctual]')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'telicity':
@@ -685,10 +776,10 @@ def mostrar_detector_en():
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 st.session_state.features.telic = False
-                go_to('dynamicity')
+                go_to('dynamicity', '[-telic]')
             if c2.button("No", use_container_width=True):
                 st.session_state.features.telic = True
-                go_to('dynamicity')
+                go_to('dynamicity', '[+telic]')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'dynamicity':
@@ -710,15 +801,15 @@ def mostrar_detector_en():
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 st.session_state.features.dynamic = True
-                go_to('result')
+                go_to('result', '[+dynamic]')
             if c2.button("No", use_container_width=True):
                 st.session_state.features.dynamic = False
-                go_to('result')
+                go_to('result', '[-dynamic]')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'result':
             st.markdown("### Analysis complete")
-            st.write(f"The aktionsart of the clause **{st.session_state.original_clause}** is **{label_result.upper()}**")
+            st.markdown(f'<div class="aviso-resultado">The aktionsart of the clause <i>{st.session_state.original_clause}</i> is {label_result}</div>', unsafe_allow_html=True)
             
             c1, c2 = st.columns([1, 1])
             if c1.button("Analyze another predicate", use_container_width=True):
@@ -742,12 +833,21 @@ def mostrar_detector_en():
             f = st.session_state.features
             row_caus = ""
             if f.causative is not None:
-                row_caus = f'<div style="margin-bottom: 25px;"><span class="rasgo-elegante">[{"+" if f.causative else "-"}causative]</span></div>'
+                label = f'[{"+" if f.causative else "-"}causative]'
+                row_caus = f'<div style="margin-bottom: 25px;">{feature_chip(label, label == feature_notice)}</div>'
             row_others = '<div style="margin-bottom: 15px;">'
-            if f.stative is not None: row_others += f'<span class="rasgo-elegante">[{"+" if f.stative else "-"}stative]</span>'
-            if f.punctual is not None: row_others += f'<span class="rasgo-elegante">[{"+" if f.punctual else "-"}punctual]</span>'
-            if f.telic is not None: row_others += f'<span class="rasgo-elegante">[{"+" if f.telic else "-"}telic]</span>'
-            if f.dynamic is not None: row_others += f'<span class="rasgo-elegante">[{"+" if f.dynamic else "-"}dynamic]</span>'
+            if f.stative is not None:
+                label = f'[{"+" if f.stative else "-"}stative]'
+                row_others += feature_chip(label, label == feature_notice)
+            if f.punctual is not None:
+                label = f'[{"+" if f.punctual else "-"}punctual]'
+                row_others += feature_chip(label, label == feature_notice)
+            if f.telic is not None:
+                label = f'[{"+" if f.telic else "-"}telic]'
+                row_others += feature_chip(label, label == feature_notice)
+            if f.dynamic is not None:
+                label = f'[{"+" if f.dynamic else "-"}dynamic]'
+                row_others += feature_chip(label, label == feature_notice)
             row_others += "</div>"
             st.markdown(row_caus + row_others, unsafe_allow_html=True)
             
