@@ -601,11 +601,16 @@ def mostrar_detector_en():
 
         elif st.session_state.akt_step == 'causativity':
             st.markdown("#### **Causativity test**")
-            st.write(f"Try to express only the event or state that happens to one of the participants in *{st.session_state.current_clause}*, without mentioning what causes it. Use these examples as models:")
+            st.write(
+                f"Try to express only the event or state resulting from "
+                f"*{st.session_state.current_clause}*, without mentioning "
+                f"what causes it."
+            )
+            st.write("Use these examples as models:")
             elegant_list([
                 "<i>The cat broke the vase</i> → <i>The vase broke</i>",
                 "<i>The hitman killed John</i> → <i>John died</i>",
-                "<i>Ana gave Pepe a book</i> → <i>Pepe came to have a book</i>"
+                "<i>Ana gave Pepe a book</i> → <i>Pepe has a book</i>"
             ])
             with st.form(key="form_caus_en"):
                 paraphrase = st.text_input("Type the event or state:")
@@ -625,7 +630,11 @@ def mostrar_detector_en():
         elif st.session_state.akt_step == 'verify_cause':
             st.write("Now consider only this event or state:")
             elegant_list([f"<i>{capitalize_first(st.session_state.paraphrase)}</i>"])
-            st.write("Can you conceive of this event or state independently of what the original expression presents as its cause?")
+            st.write(
+                "Can you conceive of this event happening, or this state "
+                "coming about, spontaneously (or without the intervention "
+                "of another participant)?"
+            )
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 go_to('basic_event')
@@ -637,11 +646,15 @@ def mostrar_detector_en():
         # --- CAUSAL RELATION ---
         elif st.session_state.akt_step == 'basic_event':
             st.write("Now compare the two expressions:")
-            elegant_list([
-                f"<i>{capitalize_first(st.session_state.current_clause)}</i>",
-                f"<i>{capitalize_first(st.session_state.paraphrase)}</i>"
-            ])
-            st.write("Does the original expression assert that what it presents as the cause made this event or state happen?")
+            st.markdown(
+                f"(a) *{capitalize_first(st.session_state.current_clause)}*\n\n"
+                f"(b) *{capitalize_first(st.session_state.paraphrase)}*"
+            )
+            st.write(
+                "Does expression (a) introduce any participant who is not "
+                "present in (b) and, moreover, necessarily imply that this "
+                "participant made the event or state in (b) occur or come about?"
+            )
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):
                 st.session_state.features.causative = True
