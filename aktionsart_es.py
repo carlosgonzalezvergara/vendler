@@ -1487,10 +1487,12 @@ def mostrar_detector_es():
 
             st.write(
                 f"Intenta expresar solamente el evento o estado "
-                f"que le ocurre a uno de los participantes de "
-                f"*{st.session_state.oracion_actual}*, "
-                f"sin mencionar aquello que lo causa. "
-                f"Básate en estos ejemplos:"
+                f"resultante de *{st.session_state.oracion_actual}*, "
+                f"sin mencionar aquello que lo causa."
+            )
+
+            st.write(
+                "Básate en estos ejemplos:"
             )
 
             lista_elegante([
@@ -1501,7 +1503,7 @@ def mostrar_detector_es():
                 "<i>Juan murió</i>",
 
                 "<i>Ana le dio un libro a Pepe</i> → "
-                "<i>Pepe pasó a tener un libro</i>"
+                "<i>Pepe tiene un libro</i>"
             ])
 
             with st.form(key="form_caus_es"):
@@ -1566,9 +1568,8 @@ def mostrar_detector_es():
             ])
 
             st.write(
-                "¿Puedes concebir este evento o estado "
-                "independientemente de aquello que la expresión "
-                "original presenta como su causa?"
+                "¿Puedes concebir que este evento ocurra, o que este estado se dé, "
+                "espontáneamente (o sin la intervención de otro participante)?"
             )
 
             c1, c2 = st.columns(2)
@@ -1606,20 +1607,16 @@ def mostrar_detector_es():
                 "Compara ahora las dos expresiones:"
             )
 
-            lista_elegante([
-                f"<i>"
-                f"{mayuscula_inicial(st.session_state.oracion_actual)}"
-                f"</i>",
-
-                f"<i>"
-                f"{mayuscula_inicial(st.session_state.reformulacion)}"
-                f"</i>"
-            ])
+            st.markdown(
+                f"(a) *{mayuscula_inicial(st.session_state.oracion_actual)}*\n\n"
+                f"(b) *{mayuscula_inicial(st.session_state.reformulacion)}*"
+            )
 
             st.write(
-                "¿La expresión original afirma que aquello que "
-                "presenta como causa hizo que este evento o estado "
-                "ocurriera?"
+                "¿La expresión (a) introduce algún participante que "
+                "no se encuentre en (b) y, además, implica necesariamente "
+                "que ese participante hizo que el evento o estado de (b) "
+                "ocurriera o llegara a darse?"
             )
 
             c1, c2 = st.columns(2)
