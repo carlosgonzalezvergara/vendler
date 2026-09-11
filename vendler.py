@@ -3,6 +3,7 @@ import aktionsart_es
 import aktionsart_en
 import ls
 import info
+import estilo
 import base64
 from pathlib import Path
 
@@ -29,6 +30,9 @@ st.markdown("""
         }
     </style>
     """, unsafe_allow_html=True)
+
+# Estilo común de la suite (colores, tipografía de la notación, botones)
+estilo.aplicar_estilo()
 
 # --- 1. GESTIÓN DE ESTADO ---
 
@@ -143,21 +147,23 @@ L = textos[st.session_state.lang]
 
 # --- 4. CABECERA Y BOTÓN DE IDIOMA ---
 
-col_tit, col_btn = st.columns([0.7, 0.3])
-with col_tit:
+def mostrar_logo(ancho: int) -> None:
     try:
         logo_data = cargar_imagen_b64("vendler.png")
         st.markdown(
-            f'<img src="data:image/png;base64,{logo_data}" alt="Vendler" width="300">',
+            f'<img src="data:image/png;base64,{logo_data}" alt="Vendler" width="{ancho}">',
             unsafe_allow_html=True,
         )
     except OSError:
-        st.title("Vendler")
+        st.markdown("<h2 style='margin: 0;'>Vendler</h2>", unsafe_allow_html=True)
+
+col_tit, col_btn = st.columns([0.7, 0.3])
+with col_tit:
+    mostrar_logo(300)
     st.caption(L['subtitulo'])
 with col_btn:
     st.button(L['lang_label'], on_click=cambiar_idioma, key="lang_btn", use_container_width=True)
 
-# Botón para volver si NO estamos en el home
 if st.session_state.seccion != 'home':
     st.button(L['btn_volver'], on_click=cambiar_seccion, args=('home',), key="back_home_btn")
 
@@ -228,7 +234,7 @@ if st.session_state.seccion == 'home':
                     <img src="data:image/png;base64,{cc_data}" alt="CC BY-NC-ND 4.0" height="28">
                 </a>
             </div>
-            <p style="text-align: center; color: #6c757d; font-size: 0.85rem; margin-top: 10px;">
+            <p style="text-align: center; color: {estilo.TEXTO_SECUNDARIO}; font-size: 0.85rem; margin-top: 10px;">
                 Carlos González Vergara (<strong>cgonzalv@uc.cl</strong>)
             </p>
             ''',

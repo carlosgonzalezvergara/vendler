@@ -1,4 +1,6 @@
 import streamlit as st
+import html
+import estilo
 import spacy
 from dataclasses import dataclass
 from enum import Enum
@@ -1133,40 +1135,21 @@ def botones_navegacion():
 
     if c1.button(
         "← Volver",
-        use_container_width=True
+        use_container_width=True,
+        key="nav_volver"
     ):
         volver()
 
     if c2.button(
-        "Iniciar nuevo análisis",
-        use_container_width=True
+        "Iniciar un nuevo análisis",
+        use_container_width=True,
+        key="nav_reset"
     ):
         reiniciar_analisis()
 
 
 def lista_elegante(items: list):
-    html_items = ""
-
-    for item in items:
-        html_items += (
-            '<div style="display: flex; '
-            'align-items: flex-start; '
-            'margin-bottom: 8px;">'
-            '<div style="color: #4A90E2; '
-            'margin-right: 10px; '
-            'font-weight: bold;">•</div>'
-            '<div style="line-height: 1.4;">'
-            f'{item}'
-            '</div>'
-            '</div>'
-        )
-
-    st.markdown(
-        f'<div style="margin-bottom: 15px;">'
-        f'{html_items}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+    estilo.lista_elegante(items)
 
 
 def chip_rasgo(etiqueta, destacado=False):
@@ -1186,130 +1169,7 @@ def chip_rasgo(etiqueta, destacado=False):
 
 def mostrar_detector_es():
 
-    st.markdown(
-        """
-        <style>
-        div[data-testid="stElementContainer"] >
-        div[style*="border: 1px solid"] {
-            background-color: #fcfcfc;
-            border: 1px solid #e0e0e0 !important;
-            padding: 25px 25px 40px 25px;
-            border-radius: 8px;
-        }
-
-        .header-analisis {
-            color: #333333;
-            font-size: 1.2em;
-            font-weight: 600;
-            border-bottom: 1px solid #eeeeee;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-        }
-
-        .rasgo-elegante {
-            display: inline-block;
-            background-color: #ffffff;
-            color: #444444;
-            padding: 4px 10px;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-            margin: 3px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-
-        .rasgo-nuevo {
-            animation: destello-rasgo 2.4s ease-out 1;
-        }
-
-        @keyframes destello-rasgo {
-            0% {
-                background-color: #eaf3fc;
-                border-color: #4A90E2;
-                color: #1a5a9e;
-                box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.18);
-            }
-            65% {
-                background-color: #eaf3fc;
-                border-color: #4A90E2;
-                color: #1a5a9e;
-                box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.10);
-            }
-            100% {
-                background-color: #ffffff;
-                border-color: #cccccc;
-                color: #444444;
-                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .rasgo-nuevo {
-                animation: none;
-                border-color: #4A90E2 !important;
-                background-color: #eaf3fc !important;
-            }
-        }
-
-        /* Pantalla intermedia de confirmación:
-           anuncia el rasgo recién determinado antes
-           de pasar a la prueba siguiente. */
-
-        .aviso-confirmacion {
-            background-color: #eaf3fc;
-            border-left: 4px solid #4A90E2;
-            color: #1a5a9e;
-            padding: 30px 26px;
-            border-radius: 6px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            font-weight: 700;
-            text-align: center;
-            line-height: 1.35;
-        }
-
-        /* Misma caja, en verde, para el resultado
-           final del análisis. */
-
-        .aviso-resultado {
-            background-color: #e8f5ea;
-            border-left: 4px solid #3d9a58;
-            color: #1e6b39;
-            padding: 30px 26px;
-            border-radius: 6px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            font-weight: 700;
-            text-align: center;
-            line-height: 1.35;
-        }
-
-        .tabla-analisis {
-            width: 60%;
-            margin-top: 10px;
-            margin-bottom: 20px;
-            border-collapse: collapse;
-            font-size: 0.95em;
-        }
-
-        .tabla-analisis th {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 2px solid #e0e0e0;
-            color: #666;
-        }
-
-        .tabla-analisis td {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    estilo.aplicar_estilo()
 
     if 'akt_paso' not in st.session_state:
         st.session_state.akt_paso = 'inicio'
@@ -1418,7 +1278,7 @@ def mostrar_detector_es():
             c1, c2 = st.columns(2)
 
             if c1.button(
-                "Continuar",
+                "Continuar", type="primary",
                 use_container_width=True
             ):
                 continuar_tras_aviso()
@@ -1456,7 +1316,7 @@ def mostrar_detector_es():
                 oracion = st.text_input("Cláusula:")
 
                 if st.form_submit_button(
-                    "Comenzar el análisis"
+                    "Comenzar el análisis", type="primary"
                 ):
                     if oracion:
 
@@ -1482,7 +1342,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "#### **Prueba de causatividad**"
+                "#### Prueba de causatividad"
             )
 
             st.write(
@@ -1515,7 +1375,7 @@ def mostrar_detector_es():
                 c1, c2 = st.columns(2)
 
                 if c1.form_submit_button(
-                    "Siguiente",
+                    "Siguiente", type="primary",
                     use_container_width=True
                 ):
 
@@ -1734,7 +1594,7 @@ def mostrar_detector_es():
                 )
 
                 if st.form_submit_button(
-                    "Actualizar"
+                    "Actualizar", type="primary"
                 ):
 
                     if nueva:
@@ -1860,7 +1720,7 @@ def mostrar_detector_es():
             == 'manual_morph'
         ):
 
-            st.info(
+            st.markdown(
                 "Por favor, agrega o corrige "
                 "la información que sea necesaria:"
             )
@@ -1925,7 +1785,7 @@ def mostrar_detector_es():
                     index=idx_actual
                 )
 
-                if st.form_submit_button("Guardar"):
+                if st.form_submit_button("Guardar", type="primary"):
                     ir_a('estatividad')
 
             botones_navegacion()
@@ -1938,7 +1798,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "#### **Prueba de estatividad**"
+                "#### Prueba de estatividad"
             )
 
             st.write(
@@ -2017,7 +1877,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "#### **Prueba de puntualidad**"
+                "#### Prueba de puntualidad"
             )
 
             p = construir_perif(
@@ -2081,7 +1941,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "#### **Prueba de telicidad**"
+                "#### Prueba de telicidad"
             )
 
             p_ger = construir_perif(
@@ -2145,7 +2005,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "#### **Prueba de dinamicidad**"
+                "#### Prueba de dinamicidad"
             )
 
             # NUEVO TEST:
@@ -2210,7 +2070,7 @@ def mostrar_detector_es():
         ):
 
             st.markdown(
-                "### Análisis finalizado"
+                "#### Análisis finalizado"
             )
 
             st.markdown(
@@ -2239,7 +2099,7 @@ def mostrar_detector_es():
                 volver()
 
             if c3.button(
-                "Obtener Estructura Lógica",
+                "Obtener estructura lógica", type="primary",
                 use_container_width=True
             ):
 
@@ -2263,7 +2123,7 @@ def mostrar_detector_es():
 
     with col_der:
 
-        with st.container(border=True):
+        with st.container():
 
             st.markdown(
                 '<div class="header-analisis">'
@@ -2274,37 +2134,17 @@ def mostrar_detector_es():
 
             if st.session_state.oracion_original:
 
-                st.write(
-                    "**Cláusula bajo análisis:**"
-                )
-
-                st.info(
-                    st.session_state.oracion_original
-                )
+                estilo.mostrar_dato_panel("Cláusula bajo análisis", html.escape(st.session_state.oracion_original))
 
             if st.session_state.variante_no_causativa:
 
-                st.write(
-                    "**Variante no causativa:**"
-                )
-
-                st.info(
-                    st.session_state.variante_no_causativa
-                )
+                estilo.mostrar_dato_panel("Variante no causativa", html.escape(st.session_state.variante_no_causativa))
 
             if st.session_state.clausula_limpia:
 
-                st.write(
-                    "**Cláusula limpia:**"
-                )
+                estilo.mostrar_dato_panel("Cláusula limpia", html.escape(st.session_state.clausula_limpia))
 
-                st.info(
-                    st.session_state.clausula_limpia
-                )
-
-            st.write(
-                "**Rasgos detectados:**"
-            )
+            st.markdown('<div class=\"info-label\">Rasgos detectados</div>', unsafe_allow_html=True)
 
             r = st.session_state.rasgos
 
@@ -2390,17 +2230,7 @@ def mostrar_detector_es():
                 == 'resultado'
             ):
 
-                st.markdown(
-                    '<br>'
-                    '<div class="header-analisis">'
-                    'Resultado'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
-
-                st.success(
-                    f"**{label_resultado.upper()}**"
-                )
+                estilo.mostrar_dato_panel("Resultado", label_resultado, "info-value-resultado")
 
 
 if __name__ == "__main__":

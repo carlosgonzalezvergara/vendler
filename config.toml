@@ -1,0 +1,4 @@
+[theme]
+# Color de acento de la suite (azul marino del logo); debe coincidir con
+# estilo.MARINO. Streamlit lo usa en botones principales, casillas y opciones.
+primaryColor = "#1A2B3E"

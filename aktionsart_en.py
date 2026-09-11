@@ -1,4 +1,6 @@
 import streamlit as st
+import html
+import estilo
 import spacy
 from dataclasses import dataclass
 from enum import Enum
@@ -421,16 +423,13 @@ def restart_analysis():
 def navigation_buttons():
     st.write("---")
     c1, c2 = st.columns([1, 1])
-    if c1.button("← Back", use_container_width=True):
+    if c1.button("← Back", use_container_width=True, key="nav_back"):
         go_back()
-    if c2.button("Start new analysis", use_container_width=True):
+    if c2.button("Start a new analysis", use_container_width=True, key="nav_reset"):
         restart_analysis()
 
 def elegant_list(items: list):
-    html_items = ""
-    for item in items:
-        html_items += f'<div style="display: flex; align-items: flex-start; margin-bottom: 8px;"><div style="color: #4A90E2; margin-right: 10px; font-weight: bold;">•</div><div style="line-height: 1.4;">{item}</div></div>'
-    st.markdown(f'<div style="margin-bottom: 15px;">{html_items}</div>', unsafe_allow_html=True)
+    estilo.lista_elegante(items)
 
 def capitalize_first(text):
     return text[0].upper() + text[1:] if text else text
@@ -442,109 +441,7 @@ def feature_chip(label, highlighted=False):
 # --- 3. INTERFACE ---
 
 def mostrar_detector_en():
-    st.markdown("""
-        <style>
-        div[data-testid="stElementContainer"] > div[style*="border: 1px solid"] {
-            background-color: #fcfcfc;
-            border: 1px solid #e0e0e0 !important;
-            padding: 25px 25px 40px 25px;
-            border-radius: 8px;
-        }
-        .header-analisis {
-            color: #333333;
-            font-size: 1.2em;
-            font-weight: 600;
-            border-bottom: 1px solid #eeeeee;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-        }
-        .rasgo-elegante {
-            display: inline-block;
-            background-color: #ffffff;
-            color: #444444;
-            padding: 4px 10px;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-            margin: 3px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-        .rasgo-nuevo {
-            animation: destello-rasgo 2.4s ease-out 1;
-        }
-        @keyframes destello-rasgo {
-            0% {
-                background-color: #eaf3fc;
-                border-color: #4A90E2;
-                color: #1a5a9e;
-                box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.18);
-            }
-            65% {
-                background-color: #eaf3fc;
-                border-color: #4A90E2;
-                color: #1a5a9e;
-                box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.10);
-            }
-            100% {
-                background-color: #ffffff;
-                border-color: #cccccc;
-                color: #444444;
-                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
-            }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .rasgo-nuevo {
-                animation: none;
-                border-color: #4A90E2 !important;
-                background-color: #eaf3fc !important;
-            }
-        }
-        .aviso-confirmacion {
-            background-color: #eaf3fc;
-            border-left: 4px solid #4A90E2;
-            color: #1a5a9e;
-            padding: 30px 26px;
-            border-radius: 6px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            font-weight: 700;
-            text-align: center;
-            line-height: 1.35;
-        }
-        .aviso-resultado {
-            background-color: #e8f5ea;
-            border-left: 4px solid #3d9a58;
-            color: #1e6b39;
-            padding: 30px 26px;
-            border-radius: 6px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            font-weight: 700;
-            text-align: center;
-            line-height: 1.35;
-        }
-        .tabla-analisis {
-            width: 60%;
-            margin-top: 10px;
-            margin-bottom: 20px;
-            border-collapse: collapse;
-            font-size: 0.95em;
-        }
-        .tabla-analisis th {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 2px solid #e0e0e0;
-            color: #666;
-        }
-        .tabla-analisis td {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    estilo.aplicar_estilo()
 
     if 'akt_step' not in st.session_state:
         st.session_state.akt_step = 'start'
@@ -582,7 +479,7 @@ def mostrar_detector_en():
             st.write("Test result:")
             st.markdown(f'<div class="aviso-confirmacion">The predicate is {feature_notice}</div>', unsafe_allow_html=True)
             c1, c2 = st.columns(2)
-            if c1.button("Continue", use_container_width=True):
+            if c1.button("Continue", type="primary", use_container_width=True):
                 continue_after_notice()
             navigation_buttons()
 
@@ -592,7 +489,7 @@ def mostrar_detector_en():
             st.write("If it sounds very odd, type it in **present** (e.g., *Mary knows English*).")
             with st.form(key="form_start_en"):
                 clause = st.text_input("Clause:")
-                if st.form_submit_button("Start the analysis"):
+                if st.form_submit_button("Start the analysis", type="primary"):
                     if clause:
                         clause_limpia = clause.strip().rstrip('.')
                         st.session_state.original_clause = clause_limpia
@@ -600,7 +497,7 @@ def mostrar_detector_en():
                         go_to('causativity')
 
         elif st.session_state.akt_step == 'causativity':
-            st.markdown("#### **Causativity test**")
+            st.markdown("#### Causativity test")
             st.write(
                 f"Try to express only the event or state resulting from "
                 f"*{st.session_state.current_clause}*, without mentioning "
@@ -615,7 +512,7 @@ def mostrar_detector_en():
             with st.form(key="form_caus_en"):
                 paraphrase = st.text_input("Type the event or state:")
                 c1, c2 = st.columns(2)
-                if c1.form_submit_button("Next", use_container_width=True):
+                if c1.form_submit_button("Next", type="primary", use_container_width=True):
                     if not paraphrase.strip():
                         st.warning("Please type the event or state, or press 'There is no possible reformulation'.")
                     else:
@@ -686,7 +583,7 @@ def mostrar_detector_en():
         elif st.session_state.akt_step == 'fix_cleanup':
             with st.form(key="form_cleanup_en"):
                 new_clause = st.text_input(f"Please type *{st.session_state.current_clause}* again **without** those elements (e.g., *Peter ran home* instead of *Peter never ran quickly home yesterday*):")
-                if st.form_submit_button("Update"):
+                if st.form_submit_button("Update", type="primary"):
                     if new_clause:
                         st.session_state.current_clause = new_clause
                         st.session_state.clean_clause = new_clause
@@ -720,7 +617,7 @@ def mostrar_detector_en():
                 go_to('manual_morph')
 
         elif st.session_state.akt_step == 'manual_morph':
-            st.info("Please add or correct any necessary information:")
+            st.markdown("Please add or correct any necessary information:")
             with st.form(key="form_m_save_en"):
                 d = st.session_state.data
                 d.infinitive = st.text_input(f"Type the **infinitive** of the verb in *{st.session_state.current_clause}*:", d.infinitive)
@@ -735,12 +632,12 @@ def mostrar_detector_en():
                     format_func=lambda x: PERSONS_DICT[x],
                     index=idx_current
                 )
-                if st.form_submit_button("Save"):
+                if st.form_submit_button("Save", type="primary"):
                     go_to('stativity')
             navigation_buttons()
 
         elif st.session_state.akt_step == 'stativity':
-            st.markdown("#### **Stativity test**")
+            st.markdown("#### Stativity test")
             st.write("Consider the following dialogue:")
             
             cd1, cd2, cd3 = st.columns(3)
@@ -762,7 +659,7 @@ def mostrar_detector_en():
             navigation_buttons()
 
         elif st.session_state.akt_step == 'punctuality':
-            st.markdown("#### **Punctuality test**")
+            st.markdown("#### Punctuality test")
             prog_past = build_prog(True, st.session_state.data)
             st.write("Consider these expressions:")
             elegant_list([
@@ -780,7 +677,7 @@ def mostrar_detector_en():
             navigation_buttons()
 
         elif st.session_state.akt_step == 'telicity':
-            st.markdown("#### **Telicity test**")
+            st.markdown("#### Telicity test")
             prog = build_prog(False, st.session_state.data)
             stop_expr = build_stop(st.session_state.data)
             perfect = build_perfect(st.session_state.data)
@@ -796,7 +693,7 @@ def mostrar_detector_en():
             navigation_buttons()
 
         elif st.session_state.akt_step == 'dynamicity':
-            st.markdown("#### **Dynamicity test**")
+            st.markdown("#### Dynamicity test")
             if st.session_state.features.punctual:
                 # With punctual predicates the progressive coerces an iterative
                 # or imminent reading and the test stops measuring dynamicity.
@@ -821,7 +718,7 @@ def mostrar_detector_en():
             navigation_buttons()
 
         elif st.session_state.akt_step == 'result':
-            st.markdown("### Analysis complete")
+            st.markdown("#### Analysis complete")
             st.markdown(f'<div class="aviso-resultado">The aktionsart of the clause <i>{st.session_state.original_clause}</i> is {label_result}</div>', unsafe_allow_html=True)
             
             c1, c2 = st.columns([1, 1])
@@ -831,18 +728,15 @@ def mostrar_detector_en():
                 go_back()
 
     with col_right:
-        with st.container(border=True):
+        with st.container():
             st.markdown('<div class="header-analisis">Analysis status</div>', unsafe_allow_html=True)
             if st.session_state.original_clause:
-                st.write("**Clause under analysis:**")
-                st.info(st.session_state.original_clause)
+                estilo.mostrar_dato_panel("Clause under analysis", html.escape(st.session_state.original_clause))
             if st.session_state.non_causative_variant:
-                st.write("**Non-causative variant:**")
-                st.info(st.session_state.non_causative_variant)
+                estilo.mostrar_dato_panel("Non-causative variant", html.escape(st.session_state.non_causative_variant))
             if st.session_state.clean_clause:
-                st.write("**Clean clause:**")
-                st.info(st.session_state.clean_clause)
-            st.write("**Detected features:**")
+                estilo.mostrar_dato_panel("Clean clause", html.escape(st.session_state.clean_clause))
+            st.markdown('<div class=\"info-label\">Detected features</div>', unsafe_allow_html=True)
             f = st.session_state.features
             row_caus = ""
             if f.causative is not None:
@@ -865,8 +759,7 @@ def mostrar_detector_en():
             st.markdown(row_caus + row_others, unsafe_allow_html=True)
             
             if st.session_state.akt_step == 'result':
-                st.markdown('<br><div class="header-analisis">Result</div>', unsafe_allow_html=True)
-                st.success(f"**{label_result.upper()}**")
+                estilo.mostrar_dato_panel("Result", label_result, "info-value-resultado")
 
 if __name__ == "__main__":
     mostrar_detector_en()

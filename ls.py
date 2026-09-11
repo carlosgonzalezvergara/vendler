@@ -4,9 +4,9 @@ Logical Structure Generator (ES version) - Streamlit
 Versión con panel informativo lateral
 """
 import streamlit as st
-import typing
 import re
-from dataclasses import dataclass, field
+import estilo
+from dataclasses import dataclass
 from typing import Optional, List, Tuple
 
 try:
@@ -69,7 +69,8 @@ RRG_KEYWORDS = {
     "covering.path.distance", "weather", "if", "evid", "sta", "tns", "mod", 
     "asp", "not", "purp", "being.created", "being.consumed", "consumed",
     "have.as.part", "have.as.kin", "have.enough.with", "express", "hit",
-    "move.away.from.reference.point", "move.up.from.reference.point", 
+    "express.question", "express.something", "affected",
+    "move.away.from.reference.point", "move.toward.reference.point", "move.up.from.reference.point", 
     "move.down.from.reference.point", "be-at.far.side.of"
 }
 
@@ -99,23 +100,6 @@ OPERADORES = [
 # Diccionario para obtener descripción completa de operadores
 OPERADORES_DESC = {op.codigo: op.descripcion for op in OPERADORES}
 
-AKTIONSART_OPCIONES = {
-    "estado": "estado",
-    "estado causativo": "estado causativo",
-    "logro": "logro",
-    "logro causativo": "logro causativo",
-    "realización": "realización",
-    "realización causativa": "realización causativa",
-    "semelfactivo": "semelfactivo",
-    "semelfactivo causativo": "semelfactivo causativo",
-    "proceso": "proceso",
-    "proceso causativo": "proceso causativo",
-    "actividad": "actividad",
-    "actividad causativa": "actividad causativa",
-    "realización activa": "realización activa",
-    "realización activa causativa": "realización activa causativa"
-}
-
 MODIFICADORES_AKT = {
     "logro": "INGR",
     "realización": "BECOME",
@@ -134,8 +118,11 @@ VERBOS_MOVIMIENTO = {
         "ir", "irse", "salir", "partir", "marchar", "escapar", "huir",
         "largarse", "migrar", "retirarse", "alejarse", "ausentarse",
         "desaparecer", "desvanecerse", "desplazarse", "evadirse", "esfumarse",
-        "fugarse", "trasladarse", "mudarse", "perderse", "marcharse", "venir",
+        "fugarse", "trasladarse", "mudarse", "perderse", "marcharse",
         "arrancar", "arrancarse", "cambiarse", "saltar"
+    ],
+    "move.toward.reference.point": [
+        "venir", "acercarse", "aproximarse", "llegar", "volver", "regresar", "retornar"
     ],
     "move.up.from.reference.point": [
         "subir", "subirse", "ascender", "escalar", "trepar", "elevarse", "remontar"
@@ -160,8 +147,7 @@ VERBOS_TRANSFERENCIA = {
         "extraer", "rescatar", "liberar", "arrancar", "sustraer", "arrebatar",
         "despojar", "confiscar", "desposeer", "usurpar", "desapropiar",
         "decomisar", "expropiar", "robar", "hurtar", "birlar", "enajenar",
-        "pedir", "solicitar", "demandar", "exigir", "comprar", "cobrar",
-        "exigir", "facturar", "reclamar", "perceptuar", "expulsar", "desalojar",
+        "comprar", "cobrar", "facturar", "expulsar", "desalojar",
         "lanzar", "arrojar", "eliminar", "desterrar", "extraditar", "ahuyentar",
         "desarraigar", "destituir", "desprender", "erradicar", "vaciar", "drenar",
         "salvar"
@@ -182,9 +168,9 @@ VERBOS_TRANSFERENCIA = {
 
 VERBOS_DICCION = {
     "preguntar": [
-        "averiguar", "consultar", "cuestionar", "demandar", "indagar",
-        "inquirir", "interpelar", "interrogar", "pedir", "preguntar",
-        "recabar", "requerir", "sondear"
+        "averiguar", "consultar", "cuestionar", "indagar",
+        "inquirir", "interpelar", "interrogar", "preguntar",
+        "recabar", "sondear"
     ],
     "conversar": [
         "charlar", "chismear", "chismorrear", "comentar", "conferenciar",
@@ -199,7 +185,7 @@ VERBOS_DICCION = {
         "encomiar": "encomio", "exhortar": "exhortación", "felicitar": "felicitación",
         "halagar": "halago", "implorar": "imploración", "insultar": "insulto",
         "jurar": "juramento", "lamentar": "lamento", "lisonjear": "lisonja",
-        "pedir": "petición", "perdonar": "perdón", "protestar": "protesta",
+        "perdonar": "perdón", "protestar": "protesta",
         "regañar": "regaño", "replicar": "réplica", "rogar": "ruego",
         "saludar": "saludo", "suplicar": "súplica"
     },
@@ -219,10 +205,16 @@ VERBOS_TRI_NEG = {
     ],
     "ocultar": [
         "ocultar", "esconder", "encubrir", "disimular", "camuflar", "velar",
-        "callar", "silenciar", "omitir", "reservar", "retener", "hurtar",
+        "callar", "silenciar", "omitir", "reservar", "retener",
         "guardar", "escamotear", "suprimir", "enmascarar", "tapar"
     ]
 }
+
+# Verbos de petición. Se pregunta si se pide un objeto material o una
+# información, y se aplica una de estas estructuras:
+#   material:    [do' (x, [express.something.to.z' (x)])] PURP [[do' (z, Ø)] CAUSE [INGR have' (x, y)]]
+#   información: [do' (x, [express.something.to.z' (x)])] PURP [do' (z, [express.something.to.x' (z, y)])]
+VERBOS_PEDIR = ["pedir", "demandar", "solicitar", "exigir", "requerir", "reclamar"]
 
 VERBOS_POSESION = {
     "tener": [
@@ -237,7 +229,7 @@ VERBOS_POSESION = {
         "obtener", "conseguir", "lograr", "adquirir", "alcanzar", "recibir",
         "ganar", "captar", "capturar", "atrapar"
     ],
-    "perder": ["perder", "extraviar", "traspapelar", "egraviar"]
+    "perder": ["perder", "extraviar", "traspapelar"]
 }
 
 VERBOS_EXISTENCIA = [
@@ -284,9 +276,6 @@ def buscar_verbo(verbo, diccionario):
         if verbo in verbos:
             return categoria
     return None
-
-def normalizar_arg(arg: str) -> str:
-    return 'Ø' if arg in ('0', '') else arg
 
 def extraer_mr(ls: str) -> tuple:
     """Extrae el marcador [MR0] o [MR1] de la estructura lógica.
@@ -346,6 +335,12 @@ def traducir_ls_a_ingles(ls_string: str, usar_html: bool = True, fallos: list = 
 
         # 1. Si está en la lista de palabras reservadas RRG, no tocar
         if constante_lower in RRG_KEYWORDS:
+            pass
+
+        # 1b. express.something.to.<argumento> (Van Valin): la base ya está en
+        #     inglés y el destinatario es un argumento, que se mantiene en la
+        #     lengua de la cláusula. No se envía al traductor.
+        elif constante_lower.startswith("express.something.to."):
             pass
             
         # 2. Si está en nuestro DICCIONARIO DE CORRECCIONES, usar esa versión
@@ -417,48 +412,144 @@ def limpiar_html_ls(ls_html: str) -> str:
     texto = re.sub(r'<[^>]+>', '', texto)
     return texto
 
+# --- Doble notación de las realizaciones activas ---
+# Van Valin (2023) representa la fase procesual y el estado resultante como
+# conjuntos simultáneos (∧ PROC ... ∧ FIN INGR ...). La notación de Van Valin y
+# LaPolla (1997) y Van Valin (2005) usa & INGR. Como muchos usuarios conocen
+# solo la segunda, se muestran ambas siempre que la estructura tenga FIN INGR.
+
+ETIQUETA_NOTACION_MODERNA = "Van Valin (2023)"
+ETIQUETA_NOTACION_CLASICA = "Van Valin y LaPolla (1997) / Van Valin (2005)"
+
+_PATRON_FASE_PROCESUAL = re.compile(
+    r"\s*∧\s*PROC\s+(?:<b>)?[^\s()<]+'(?:</b>)?\s*\([^()]*\)\s*∧\s*FIN\s+INGR\b"
+)
+
+def tiene_fase_procesual(ls: str) -> bool:
+    """Indica si la estructura usa la notación de Van Valin (2023)."""
+    return bool(ls) and "FIN INGR" in ls
+
+def a_notacion_clasica(ls: str) -> str:
+    """Convierte ∧ PROC pred' (...) ∧ FIN INGR en & INGR (Van Valin 2005).
+
+    Funciona con texto plano y con la versión HTML (predicados en <b>), de
+    modo que conserva DO, operadores y correcciones manuales.
+    """
+    return _PATRON_FASE_PROCESUAL.sub(" & INGR", ls)
+
+def para_pantalla(ls_html: str) -> str:
+    """Ángulos tipográficos para los operadores, como en el texto plano y el PNG."""
+    return ls_html.replace('&lt;', '⟨').replace('&gt;', '⟩')
+
+def mostrar_ls_resultado(ls_html: str) -> None:
+    """Muestra la estructura en el área principal, con doble notación si corresponde."""
+    ls_html = para_pantalla(ls_html)
+    if tiene_fase_procesual(ls_html):
+        # Rótulo y cuadro en un mismo bloque, para que el CSS controle la
+        # separación: con st.caption aparte, Streamlit añade el espacio entre
+        # elementos y el rótulo queda lejos del cuadro que le corresponde.
+        st.markdown(
+            f'<div class="ls-rotulo">{ETIQUETA_NOTACION_MODERNA}</div>'
+            f'<div class="ls-resultado">{ls_html}</div>'
+            f'<div class="ls-rotulo">{ETIQUETA_NOTACION_CLASICA}</div>'
+            f'<div class="ls-resultado">{a_notacion_clasica(ls_html)}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(f'<div class="ls-resultado">{ls_html}</div>', unsafe_allow_html=True)
+
+def html_panel_ls(ls_html: str) -> str:
+    """Contenido de una sección de estructura del panel lateral, con doble notación si corresponde."""
+    ls_html = para_pantalla(ls_html)
+    if not tiene_fase_procesual(ls_html):
+        return ls_html
+    return (f'<div class="notacion-rotulo">{ETIQUETA_NOTACION_MODERNA}</div>{ls_html}'
+            f'<div class="notacion-rotulo">{ETIQUETA_NOTACION_CLASICA}</div>{a_notacion_clasica(ls_html)}')
+
+def mostrar_nota_teorica(ls_html: str) -> None:
+    """Nota teórica sobre notación, solo si el caso la activa.
+
+    Las líneas se unen con \\n en vez de escribirse como docstring indentado,
+    para que la sangría del código no se interprete como bloque de código
+    dentro del markdown.
+    """
+    usa_proc_fin = tiene_fase_procesual(ls_html)
+    usa_causa_anticausativa = st.session_state.get('ls_via_anticausativa', False)
+    if not (usa_proc_fin or usa_causa_anticausativa):
+        return
+    with st.expander("Nota teórica: notación alternativa"):
+        if usa_proc_fin:
+            st.markdown("\n".join([
+                "**Fase procesual y estado resultante (realización activa)**",
+                "",
+                "Este programa representa la fase procesual y el estado resultante como dos conjuntos simultáneos, siguiendo la revisión de Van Valin (2023), que incorpora la propuesta de Osswald para resolver la «anomalía del y-entonces» de la notación anterior. Como esa notación anterior sigue siendo la más difundida, el programa muestra también la estructura en ella.",
+                "",
+                "- Van Valin (2023): `do' (x, [pred' (x, y)]) ∧ PROC being.consumed' (y) ∧ FIN INGR consumed' (y)`",
+                "- Van Valin y LaPolla (1997) / Van Valin (2005): `do' (x, [pred' (x, y)]) & INGR consumed' (y)`",
+            ]))
+        if usa_proc_fin and usa_causa_anticausativa:
+            st.write("---")
+        if usa_causa_anticausativa:
+            st.markdown("\n".join([
+                "**Anticausativo con componente causal conservado**",
+                "",
+                "Este programa conserva el operador `CAUSE` con el argumento causante inespecificado, en vez de eliminarlo, siguiendo González Vergara (2006).",
+                "",
+                "- Este programa: `[do' (Ø, Ø)] CAUSE [INGR broken' (jarrón)]`",
+                "- Tratamiento estándar: `INGR broken' (jarrón)`",
+            ]))
+
 def convertir_ls_a_latex(ls_html: str) -> str:
-    """Convierte la estructura lógica con HTML a formato LaTeX (modo matemático)."""
-    texto = ls_html
-    
-    # 1. Convertir negritas (constantes predicativas)
-    texto = re.sub(r'<b>([^<]+)</b>', r'\\mathbf{\1}', texto)
-    
-    # 2. Convertir apertura de operador: &lt;<sub>XX</sub> → \langle_{\text{XX}}\;
-    texto = re.sub(r'&lt;<sub>([^<]+)</sub>', r'\\langle_{\\text{\1}}\\;', texto)
-    
-    # 3. Convertir itálicas (valores de operadores) con espacio después
-    texto = re.sub(r'<i>([^<]+)</i>', r'\\textit{\1}\\;', texto)
-    
-    # 4. Convertir cierre de ángulos con espacio antes
-    texto = texto.replace('&gt;', r'\rangle')
-    
-    # 5. Convertir símbolo vacío
-    texto = texto.replace('Ø', r'\varnothing')
-    
-    # 6. Convertir palabras clave de RRG a texto con espacios
-    keywords = ['CAUSE', 'INGR', 'BECOME', 'PROC', 'SEML', 'PURP', 'FIN', 'NOT']
-    for kw in keywords:
-        texto = re.sub(rf'(?<![a-zA-Z]){kw}(?![a-zA-Z\'])', f'\\;\\\\text{{{kw}}}\\;', texto)
-    
-    # 7. Formatear [MR0] y [MR1]
-    texto = re.sub(r'\[MR([01])\]', r'\\;[\\text{MR\1}]', texto)
-    
-    # 8. Formatear argumentos entre paréntesis (palabras que empiezan con mayúscula)
-    def formatear_argumento(match):
-        arg = match.group(1)
-        if arg[0].isupper() and arg not in keywords:
-            return f'\\text{{{arg}}}'
-        return arg
-    
-    texto = re.sub(r'\b([A-Z][a-zá-úñ]*)\b(?![}\'])', formatear_argumento, texto)
-    
-    # 9. Añadir espacio después de comas
-    texto = texto.replace(',', ', ')
-    
-    # 10. Envolver todo en modo matemático
-    texto = f'${texto}$'
-    return texto
+    r"""Convierte la estructura lógica con HTML a LaTeX.
+
+    La estructura se escribe en modo texto, de modo que los espacios, las
+    tildes y las mayúsculas de los argumentos se conservan sin tratamiento
+    especial. Solo los símbolos que lo requieren van en modo matemático, y
+    siempre con \( \) en vez de $ $, para que dos símbolos seguidos no formen
+    $$ (que LaTeX interpreta como apertura de una fórmula destacada).
+    Usa solo comandos del núcleo de LaTeX; probado con pdflatex y XeLaTeX,
+    sin paquetes adicionales.
+    """
+    especiales = {
+        '\\': r'\textbackslash{}', '&': r'\&', '%': r'\%', '$': r'\$',
+        '#': r'\#', '_': r'\_', '{': r'\{', '}': r'\}',
+        '~': r'\textasciitilde{}', '^': r'\textasciicircum{}',
+    }
+    simbolos = {
+        "'": r"\('\)",          # prima de las constantes
+        'Ø': r'\O{}',           # argumento vacío (letra Ø, como en pantalla)
+        '∧': r'\(\wedge\)',
+        '⟨': r'\(\langle\)',
+        '⟩': r'\(\rangle\)',
+    }
+
+    def escapar(texto: str) -> str:
+        return ''.join(simbolos.get(c, especiales.get(c, c)) for c in texto)
+
+    partes = []
+    patron = r'(&lt;<sub>.*?</sub>|<i>.*?</i>|<b>.*?</b>|&lt;|&gt;|<[^>]+>)'
+    for trozo in re.split(patron, ls_html):
+        if not trozo:
+            continue
+        m_sub = re.fullmatch(r'&lt;<sub>(.*?)</sub>', trozo)
+        m_it = re.fullmatch(r'<i>(.*?)</i>', trozo)
+        m_bf = re.fullmatch(r'<b>(.*?)</b>', trozo)
+        if m_sub:
+            # Apertura de operador: ángulo con el código en subíndice
+            partes.append(r'\(\langle_{\mathrm{' + escapar(m_sub.group(1)) + r'}}\)')
+        elif m_it:
+            partes.append(r'\textit{' + escapar(m_it.group(1)) + '}')
+        elif m_bf:
+            partes.append(r'\textbf{' + escapar(m_bf.group(1)) + '}')
+        elif trozo == '&lt;':
+            partes.append(r'\(\langle\)')
+        elif trozo == '&gt;':
+            partes.append(r'\(\rangle\)')
+        elif trozo.startswith('<'):
+            continue  # cualquier otra etiqueta HTML se descarta
+        else:
+            partes.append(escapar(trozo))
+    return ''.join(partes)
 
 def generar_imagen_ls(ls_html: str) -> bytes:
     """Genera una imagen PNG de la estructura lógica con formato."""
@@ -476,19 +567,21 @@ def generar_imagen_ls(ls_html: str) -> bytes:
     # Calcular ancho según longitud
     ancho = max(len(ls_html) * 0.08, 10)
     
-    fig, ax = plt.subplots(figsize=(ancho, 1.5))
-    ax.axis('off')
-    
-    ax.text(0.5, 0.5, texto,
-            fontsize=14,
-            ha='center',
-            va='center',
-            transform=ax.transAxes)
-    
-    buf = BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight', dpi=150,
-                facecolor='white', edgecolor='none', pad_inches=0.3)
-    plt.close(fig)
+    # Sin serifas, como la estructura en pantalla; DejaVu Sans viene con matplotlib
+    with plt.rc_context({'font.family': 'DejaVu Sans', 'mathtext.fontset': 'dejavusans'}):
+        fig, ax = plt.subplots(figsize=(ancho, 1.5))
+        ax.axis('off')
+        
+        ax.text(0.5, 0.5, texto,
+                fontsize=15,
+                ha='center',
+                va='center',
+                transform=ax.transAxes)
+        
+        buf = BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight', dpi=150,
+                    facecolor='white', edgecolor='none', pad_inches=0.3)
+        plt.close(fig)
     buf.seek(0)
     return buf.getvalue()
 
@@ -515,6 +608,18 @@ def reemplazar_predicado_en_ls(ls_html: str, pred_viejo: str, pred_nuevo: str) -
     reemplazo = f"<b>{pred_nuevo}'</b>"
     return re.sub(patron, reemplazo, ls_html)
 
+def registrar_correccion(pred_viejo: str, pred_nuevo: str) -> None:
+    """Guarda una corrección manual de predicado para reaplicarla en el panel."""
+    correcciones = st.session_state.get('ls_correcciones_pred', {})
+    correcciones[pred_viejo] = pred_nuevo
+    st.session_state.ls_correcciones_pred = correcciones
+
+def aplicar_correcciones(ls_html: str) -> str:
+    """Aplica, en orden, las correcciones manuales guardadas a una estructura traducida."""
+    for viejo, nuevo in st.session_state.get('ls_correcciones_pred', {}).items():
+        ls_html = reemplazar_predicado_en_ls(ls_html, viejo, nuevo)
+    return ls_html
+
 # --- 4. FUNCIONES DE GENERACIÓN DE ESTRUCTURAS LÓGICAS ---
 
 def generar_estructura_no_causativa(x, y, locus, pred, operador):
@@ -539,11 +644,6 @@ def generar_estructura_actividad(x, y, locus, pred, operador):
     elif y == "Ø" and locus == "Ø":
         return f"{operador + ' ' if operador else ''}do' ({x}, [{pred}' ({x})])"
     return None
-
-def generar_estructura_actividad_causativa(x, y, pred, operador):
-    if y == "Ø":
-        return None
-    return f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}do' ({y}, [{pred}' ({y})])]"
 
 def aplicar_DO(estructura_logica):
     if estructura_logica is None:
@@ -632,13 +732,10 @@ def reiniciar_analisis():
 
 def botones_navegacion():
     st.write("---")
-    st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=reiniciar_analisis)
+    st.button("Iniciar un nuevo análisis", use_container_width=True, key=f"nav_reset_{st.session_state.ls_paso}", on_click=reiniciar_analisis)
 
 def lista_elegante(items: list):
-    html_items = ""
-    for item in items:
-        html_items += f'<div style="display: flex; align-items: flex-start; margin-bottom: 8px;"><div style="color: #4A90E2; margin-right: 10px; font-weight: bold;">•</div><div style="line-height: 1.4;">{item}</div></div>'
-    st.markdown(f'<div style="margin-bottom: 15px;">{html_items}</div>', unsafe_allow_html=True)
+    estilo.lista_elegante(items)
 
 # --- 6. PANEL INFORMATIVO LATERAL ---
 
@@ -646,55 +743,6 @@ def mostrar_panel_info():
     """Muestra el panel informativo con los datos del análisis actual."""
     
     # Estilos del panel
-    st.markdown("""
-        <style>
-        .info-panel {
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-        }
-        .info-panel-title {
-            color: #333333;
-            font-size: 1.1em;
-            font-weight: 600;
-            border-bottom: 2px solid #4A90E2;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-        }
-        .info-item {
-            margin-bottom: 12px;
-        }
-        .info-label {
-            color: #666666;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-        .info-value {
-            color: #333333;
-            font-size: 0.95em;
-            padding: 5px 8px;
-            background-color: #ffffff;
-            border-radius: 4px;
-            border-left: 3px solid #4A90E2;
-        }
-        .info-value-ls {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.85em;
-            padding: 8px;
-            background-color: #ffffff;
-            border-radius: 4px;
-            border-left: 3px solid #4A90E2;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-        .info-value-akt {
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        </style>
-    """, unsafe_allow_html=True)
     
     st.markdown('<div class="info-panel-title">Datos del análisis</div>', unsafe_allow_html=True)
     
@@ -772,26 +820,31 @@ def mostrar_panel_info():
     ls_traducida = st.session_state.get('ls_estructura_traducida')
     if paso_actual in pasos_mostrar_el:
         ls_traducida = st.session_state.get('ls_estructura_traducida')
-        if not ls_traducida:
+        ls_sin_do = st.session_state.get('ls_estructura_pre_do')
+        if st.session_state.get('ls_estructura_con_do') and ls_sin_do:
+            # Con intencionalidad, la sección 9 muestra la versión con DO;
+            # esta muestra la versión sin DO, con las correcciones del usuario
+            ls_traducida = aplicar_correcciones(traducir_ls_a_ingles(ls_sin_do, usar_html=True))
+        elif not ls_traducida:
             ls_estructura = st.session_state.get('ls_estructura')
             if ls_estructura:
-                ls_traducida = traducir_ls_a_ingles(ls_estructura, usar_html=True)
+                ls_traducida = aplicar_correcciones(traducir_ls_a_ingles(ls_estructura, usar_html=True))
         if ls_traducida:
             st.markdown(f'''
                 <div class="info-item">
                     <div class="info-label">Estructura lógica</div>
-                    <div class="info-value-ls">{ls_traducida}</div>
+                    <div class="info-value-ls">{html_panel_ls(ls_traducida)}</div>
                 </div>
             ''', unsafe_allow_html=True)
     
     # 9. Estructura lógica con capa de intencionalidad
     ls_con_do = st.session_state.get('ls_estructura_con_do')
     if ls_con_do:
-        ls_con_do_trad = traducir_ls_a_ingles(ls_con_do, usar_html=True)
+        ls_con_do_trad = aplicar_correcciones(traducir_ls_a_ingles(ls_con_do, usar_html=True))
         st.markdown(f'''
             <div class="info-item">
                 <div class="info-label">Estructura lógica con intencionalidad</div>
-                <div class="info-value-ls">{ls_con_do_trad}</div>
+                <div class="info-value-ls">{html_panel_ls(ls_con_do_trad)}</div>
             </div>
         ''', unsafe_allow_html=True)
     
@@ -820,49 +873,14 @@ def mostrar_panel_info():
         st.markdown(f'''
             <div class="info-item">
                 <div class="info-label">Estructura lógica con operadores</div>
-                <div class="info-value-ls">{ls_final}</div>
+                <div class="info-value-ls">{html_panel_ls(ls_final)}</div>
             </div>
         ''', unsafe_allow_html=True)
 
 # --- 7. INTERFAZ PRINCIPAL ---
 
 def mostrar_asistente_ls():
-    st.markdown("""
-        <style>
-        div[data-testid="stElementContainer"] > div[style*="border: 1px solid"] {
-            background-color: #fcfcfc;
-            border: 1px solid #e0e0e0 !important;
-            padding: 25px 25px 40px 25px;
-            border-radius: 8px;
-        }
-        .header-analisis {
-            color: #333333;
-            font-size: 1.2em;
-            font-weight: 600;
-            border-bottom: 1px solid #eeeeee;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-        }
-        .ls-resultado {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 1.1em;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-left: 4px solid #4A90E2;
-            margin: 10px 0;
-            word-wrap: break-word;
-        }
-        .param-tag {
-            display: inline-block;
-            background-color: #e8f4f8;
-            color: #2c5282;
-            padding: 2px 8px;
-            border-radius: 4px;
-            margin: 2px;
-            font-size: 0.9em;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    estilo.aplicar_estilo()
 
     # Inicialización del estado
     if 'ls_paso' not in st.session_state:
@@ -879,8 +897,6 @@ def mostrar_asistente_ls():
         st.session_state.ls_estructura = ''
         st.session_state.ls_estructura_pre_do = ''  # NUEVO: antes de DO
         st.session_state.ls_estructura_con_do = ''  # NUEVO: después de DO
-        st.session_state.ls_operadores = []
-        st.session_state.ls_preguntas_pendientes = []
         st.session_state.ls_respuestas = {}
         st.session_state.ls_es_verbo_reciproco = False
 
@@ -893,27 +909,27 @@ def mostrar_asistente_ls():
     with col_main:
         # --- PASO: INICIO ---
         if st.session_state.ls_paso == 'inicio':
-            st.info("**Este módulo puede asistirte en la formalización de la estructura lógica básica de una cláusula.**")
+            st.markdown("Este módulo puede asistirte en la formalización de la estructura lógica básica de una cláusula.")
             st.warning("Advertencia: el programa solo maneja cláusulas simples, con su estructura argumental típica, y puede dar resultados inexactos en construcciones que las alteran.")
             
             # Si viene del detector de aktionsart
             if st.session_state.ls_akt and st.session_state.ls_oracion:
-                st.success(f"El aktionsart detectado para la cláusula **{st.session_state.ls_oracion}** fue **{st.session_state.ls_akt.upper()}**")
+                st.success(f"El aktionsart detectado para la cláusula **{st.session_state.ls_oracion}** fue **{st.session_state.ls_akt}**")
                 
                 col_cont, col_reset = st.columns(2)
                 
                 with col_cont:
                     st.button(
-                        "Usar estos datos", 
+                        "Usar estos datos", type="primary",
                         use_container_width=True, 
                         on_click=crear_callback_ir_a('argumentos')
                     )
                 
                 with col_reset:
                     st.button(
-                        "↺ Iniciar un nuevo análisis", 
+                        "Iniciar un nuevo análisis", 
                         use_container_width=True, 
-                        key="reset_desde_inicio",
+                        key="nav_reset_inicio",
                         on_click=reiniciar_analisis
                     )
             else:
@@ -963,7 +979,7 @@ def mostrar_asistente_ls():
                         label_visibility="collapsed", 
                     )
                     
-                    if st.form_submit_button("Comenzar"):
+                    if st.form_submit_button("Comenzar", type="primary"):
                         if oracion and akt:
                             st.session_state.ls_akt = akt
                             st.session_state.ls_oracion = oracion
@@ -975,8 +991,8 @@ def mostrar_asistente_ls():
 
         # --- PASO: ARGUMENTOS ---
         elif st.session_state.ls_paso == 'argumentos':
-            st.markdown("#### **Identificación de argumentos**")
-            st.info(f"Selecciona los argumentos presentes en la cláusula **{st.session_state.ls_oracion}** (sintácticos o morfológicos).")
+            st.markdown("#### Identificación de argumentos")
+            st.markdown(f"Selecciona los argumentos presentes en la cláusula **{st.session_state.ls_oracion}** (sintácticos o morfológicos).")
             st.warning("Si hay argumentos sintácticos, privilegia estos.")
             
             # Inicializar estados si no existen
@@ -1124,7 +1140,7 @@ def mostrar_asistente_ls():
                 
                 st.session_state.ls_paso = 'dinamicidad'
             
-            st.button("Siguiente", use_container_width=True, key="btn_args_siguiente", on_click=_guardar_argumentos)
+            st.button("Siguiente", type="primary", use_container_width=True, key="btn_args_siguiente", on_click=_guardar_argumentos)
             botones_navegacion()
 
         # --- PASO: DINAMICIDAD ---
@@ -1132,7 +1148,7 @@ def mostrar_asistente_ls():
             if st.session_state.get('ls_es_dinamico') is not None:
                 ir_a('caso_especial_check')
             
-            st.markdown("#### **Verificación de dinamicidad**")
+            st.markdown("#### Verificación de dinamicidad")
             oracion = st.session_state.ls_oracion
             AKT = st.session_state.ls_akt
             
@@ -1143,15 +1159,15 @@ def mostrar_asistente_ls():
                 st.session_state.ls_es_dinamico = False
                 ir_a('caso_especial_check')
             elif AKT in ["logro", "semelfactivo"]:
-                st.info(f"¿**{oracion[0].upper() + oracion[1:]}** es compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
+                st.markdown(f"¿**{oracion[0].upper() + oracion[1:]}** es compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
                 c1, c2 = st.columns(2)
                 c1.button("Sí", use_container_width=True, key="din_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
                 c2.button("No", use_container_width=True, key="din_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
             elif AKT in ["logro causativo", "semelfactivo causativo"]:
                 with st.form(key="form_din_caus"):
-                    st.info(f"Escribe el evento resultante de **{oracion}**, sin el segmento causativo (ej.:*el gato rompió el jarrón* → **el jarrón se rompió**):")
+                    st.markdown(f"Escribe el evento resultante de **{oracion}**, sin el segmento causativo (ej.:*el gato rompió el jarrón* → **el jarrón se rompió**):")
                     clausula_res = st.text_input("Resultado", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente", use_container_width=True):
+                    if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
                         st.session_state.ls_clausula_resultante = clausula_res
                         ir_a('dinamicidad_confirm')
             else:
@@ -1161,7 +1177,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'dinamicidad_confirm':
             clausula = st.session_state.get('ls_clausula_resultante', '')
-            st.info(f"¿Es **{clausula}** compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
+            st.markdown(f"¿Es **{clausula}** compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="din_conf_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
             c2.button("No", use_container_width=True, key="din_conf_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
@@ -1169,7 +1185,7 @@ def mostrar_asistente_ls():
 
         # --- PASO: PREDICADO ---
         elif st.session_state.ls_paso == 'predicado':
-            st.markdown("#### **Identificación del predicado**")
+            st.markdown("#### Identificación del predicado")
             AKT = st.session_state.ls_akt
             es_dinamico = st.session_state.ls_es_dinamico
             y = st.session_state.ls_y
@@ -1180,15 +1196,15 @@ def mostrar_asistente_ls():
                 ir_a('predicados_especiales_check')
             elif (AKT in ["actividad", "realización activa"]) or (AKT in ["logro", "semelfactivo"] and es_dinamico) or (y != "Ø" and "causativ" not in AKT):
                 with st.form(key="form_pred_inf"):
-                    st.info("Escribe el **infinitivo** del verbo:")
+                    st.markdown("Escribe el **infinitivo** del verbo:")
                     pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente", use_container_width=True):
+                    if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
                         st.session_state.ls_pred = pred.lower().replace(" ", ".")
                         ir_a('predicados_especiales_check')
                 botones_navegacion()
             else:
                 with st.form(key="form_pred_part"):
-                    st.info("Escribe el **infinitivo** del verbo (o el **adjetivo/atributo** si se trata de un verbo copulativo o seudocopulativo):")
+                    st.markdown("Escribe el **infinitivo** del verbo (o el **adjetivo/atributo** si se trata de un verbo copulativo o seudocopulativo):")
                     pred = st.text_input("Predicado", label_visibility="collapsed")
                     tipo_pred = st.radio(
                         "Tipo de predicado",
@@ -1197,7 +1213,7 @@ def mostrar_asistente_ls():
                         horizontal=True,
                         label_visibility="collapsed"
                     )
-                    if st.form_submit_button("Siguiente", use_container_width=True):
+                    if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
                         if not tipo_pred:
                             st.warning("Por favor, indica si es un verbo o un adjetivo/atributo.")
                         elif not pred.strip():
@@ -1255,7 +1271,7 @@ def mostrar_asistente_ls():
         # --- PREGUNTA FILTRO SE (distingue dativo experimentante de doler/gustar) ---
         elif st.session_state.ls_paso == 'pregunta_filtro_se':
             oracion = st.session_state.ls_oracion
-            st.info(f"""¿La oración **{oracion[0].upper() + oracion[1:]}** contiene la partícula **se** (como en *se me/te/le*)?
+            st.markdown(f"""¿La oración **{oracion[0].upper() + oracion[1:]}** contiene la partícula **se** (como en *se me/te/le*)?
 
 • Ejemplos con **se**: *Se me perdió el reloj*, *A Pepe se le olvidaron las llaves*  
 • Ejemplos sin **se**: *Te duele la cabeza*, *A Ana le gustan los helados*""")
@@ -1266,9 +1282,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pred_dativo_experimentante':
             with st.form(key="form_pred_dat_exp"):
-                st.info("Escribe el **infinitivo** del verbo:")
+                st.markdown("Escribe el **infinitivo** del verbo:")
                 pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     st.session_state.ls_pred = pred.lower().replace(" ", ".")
                     ir_a('generar_dativo_experimentante')
             botones_navegacion()
@@ -1291,7 +1307,7 @@ def mostrar_asistente_ls():
             participio = st.session_state.ls_participio_dat_exp
             operador = st.session_state.ls_operador_dat_exp
 
-            st.info("¿El verbo de la cláusula tiene una contraparte causativa (ej.: *romperse* / *romper*)?")
+            st.markdown("¿El verbo de la cláusula tiene una contraparte causativa (ej.: *romperse* / *romper*)?")
             c1, c2 = st.columns(2)
 
             def _anti_dat_si():
@@ -1311,7 +1327,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_doler_gustar':
             x = st.session_state.ls_x
             z = st.session_state.ls_z
-            st.info(f"¿**{x[0].upper() + x[1:]}** es una parte de **{z}**?")
+            st.markdown(f"¿**{x[0].upper() + x[1:]}** es una parte de **{z}**?")
             c1, c2 = st.columns(2)
             
             def _dg_si1():
@@ -1330,7 +1346,7 @@ def mostrar_asistente_ls():
             z = st.session_state.ls_z
             x = st.session_state.ls_x
             oracion = st.session_state.ls_oracion
-            st.info(f"""¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a alguno de estos ejemplos?
+            st.markdown(f"""¿**{oracion[0].upper() + oracion[1:]}** tiene una estructura parecida a alguno de estos ejemplos?
 
 • *Me/te/le [verbo] {x}*  
 • *A {z} me/te/le [verbo] {x}*""")
@@ -1354,9 +1370,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pred_doler_gustar':
             with st.form(key="form_pred_dg"):
-                st.info("Escribe el **infinitivo** del verbo:")
+                st.markdown("Escribe el **infinitivo** del verbo:")
                 pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     st.session_state.ls_pred = pred.lower().replace(" ", ".")
                     ir_a('generar_doler_gustar')
             botones_navegacion()
@@ -1384,7 +1400,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_hacer_meteo':
             oracion = st.session_state.ls_oracion
-            st.info(f"¿El verbo de **{oracion}** es *hacer*?")
+            st.markdown(f"¿El verbo de **{oracion}** es *hacer*?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="hm_si", on_click=crear_callback_ir_a('pred_hacer_meteo'))
             c2.button("No", use_container_width=True, key="hm_no", on_click=crear_callback_ir_a('caso_locativo'))
@@ -1392,9 +1408,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pred_hacer_meteo':
             with st.form(key="form_hacer_meteo"):
-                st.info("Escribe la sensación en forma de adjetivo (ej.: *caluroso*):")
+                st.markdown("Escribe la sensación en forma de adjetivo (ej.: *caluroso*):")
                 pred = st.text_input("Sensación", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     es_dinamico = st.session_state.ls_es_dinamico
                     operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
@@ -1407,11 +1423,11 @@ def mostrar_asistente_ls():
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'caso_impersonal':
-            st.markdown("#### **Caso impersonal**")
+            st.markdown("#### Caso impersonal")
             with st.form(key="form_impersonal"):
-                st.info("Escribe el infinitivo del verbo:")
+                st.markdown("Escribe el infinitivo del verbo:")
                 verbo = st.text_input("Infinitivo", label_visibility="collapsed")
-                if st.form_submit_button("Siguiente"):
+                if st.form_submit_button("Siguiente", type="primary"):
                     verbo = verbo.lower().replace(" ", ".")
                     st.session_state.ls_verbo_impersonal = verbo
                     st.session_state.ls_pred = verbo  # Guardar para el panel
@@ -1425,9 +1441,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'impersonal_ir':
             with st.form(key="form_imp_ir"):
-                st.info("Escribe el adverbio o equivalente (ej.: *bien*):")
+                st.markdown("Escribe el adverbio o equivalente (ej.: *bien*):")
                 pred = st.text_input("adverbio", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     z = st.session_state.ls_z
                     operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
@@ -1439,7 +1455,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'impersonal_bastar':
             with st.form(key="form_imp_bastar"):
                 suplemento = st.text_input("Escribe la información del complemento sin preposición (ej.: *tu amistad*):")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     z = st.session_state.ls_z
                     operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
                     st.session_state.ls_complemento_regimen = suplemento  # Guardar
@@ -1451,7 +1467,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_locativo_dativo':
             x = st.session_state.ls_x
             z = st.session_state.ls_z
-            st.info(f"¿*{z[0].upper() + z[1:]}* señala el destino de un desplazamiento por parte de *{x}*?")
+            st.markdown(f"¿*{z[0].upper() + z[1:]}* señala el destino de un desplazamiento por parte de *{x}*?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="ld_si", on_click=crear_callback_ir_a('generar_locativo_dativo'))
             c2.button("No", use_container_width=True, key="ld_no", on_click=crear_callback_ir_a('caso_oi'))
@@ -1466,9 +1482,9 @@ def mostrar_asistente_ls():
             
             if AKT == "realización activa":
                 with st.form(key="form_ld_ra"):
-                    st.info("Escribe el **infinitivo** del verbo:")
+                    st.markdown("Escribe el **infinitivo** del verbo:")
                     pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Generar estructura"):
+                    if st.form_submit_button("Generar estructura", type="primary"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
                         ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}) ∧ FIN INGR be-LOC' ({z}, {x})"
@@ -1485,30 +1501,30 @@ def mostrar_asistente_ls():
 
         # --- CASO OI (verbos con objeto indirecto) ---
         elif st.session_state.ls_paso == 'caso_oi':
-            st.markdown("#### **Verbo con complemento indirecto**")
+            st.markdown("#### Verbo con complemento indirecto")
             AKT = st.session_state.ls_akt
             
             # Para realización activa, verificar si es verbo de dicción primero
             if AKT == "realización activa":
                 with st.form(key="form_oi_pred_ra"):
-                    st.info("Escribe el **infinitivo** del verbo:")
+                    st.markdown("Escribe el **infinitivo** del verbo:")
                     pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente"):
+                    if st.form_submit_button("Siguiente", type="primary"):
                         st.session_state.ls_pred = pred.lower().replace(" ", ".")
                         ir_a('pregunta_diccion_ra')
             # Para realización activa causativa (ej.: "Pepe le enseñó francés a Ana")
             elif AKT == "realización activa causativa":
                 with st.form(key="form_oi_pred_rac"):
-                    st.info("Escribe el **infinitivo** del verbo:")
+                    st.markdown("Escribe el **infinitivo** del verbo:")
                     pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente"):
+                    if st.form_submit_button("Siguiente", type="primary"):
                         st.session_state.ls_pred = pred.lower().replace(" ", ".")
                         ir_a('pregunta_ensenar_rac')
             else:
                 with st.form(key="form_oi_pred"):
-                    st.info("Escribe el **infinitivo** del verbo:")
+                    st.markdown("Escribe el **infinitivo** del verbo:")
                     pred = st.text_input("Infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente"):
+                    if st.form_submit_button("Siguiente", type="primary"):
                         st.session_state.ls_pred = pred.lower().replace(" ", ".")
                         ir_a('verificar_tipo_oi')
             botones_navegacion()
@@ -1516,7 +1532,7 @@ def mostrar_asistente_ls():
         # Pregunta enseñar/mostrar para realización activa causativa
         elif st.session_state.ls_paso == 'pregunta_ensenar_rac':
             pred = st.session_state.ls_pred
-            st.info(f"¿Es **{pred}** un verbo como *enseñar* o *mostrar*?")
+            st.markdown(f"¿Es **{pred}** un verbo como *enseñar* o *mostrar*?")
             c1, c2 = st.columns(2)
             
             def _ens_rac_si():
@@ -1536,20 +1552,46 @@ def mostrar_asistente_ls():
         # Pregunta de dicción para realización activa
         elif st.session_state.ls_paso == 'pregunta_diccion_ra':
             pred = st.session_state.ls_pred
-            st.info(f"¿Es **{pred}** un verbo de dicción?")
+            if pred in VERBOS_PEDIR:
+                ir_a('pregunta_pedir')
+            st.markdown(f"¿Es **{pred}** un verbo de dicción?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="dicc_ra_si", on_click=crear_callback_ir_a('generar_diccion_ra'))
             c2.button("No", use_container_width=True, key="dicc_ra_no", on_click=crear_callback_ir_a('caso_locativo'))
             botones_navegacion()
 
         # Generación de dicción para realización activa (estructura especial con being.created)
+        # Verbos de petición (vía del CI y de realización activa)
+        elif st.session_state.ls_paso == 'pregunta_pedir':
+            x = st.session_state.ls_x
+            st.markdown(f"¿**{x[0].upper() + x[1:]}** pide un objeto material o una información?")
+            c1, c2 = st.columns(2)
+
+            def _generar_pedir(material):
+                x = st.session_state.ls_x
+                y = st.session_state.ls_y
+                z = st.session_state.ls_z
+                operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
+                x_clean = x.replace(" ", ".")
+                z_clean = z.replace(" ", ".")
+                peticion = f"[{operador + ' ' if operador else ''}do' ({x}, [express.something.to.{z_clean}' ({x})])]"
+                if material:
+                    ls = f"{peticion} PURP [[do' ({z}, Ø)] CAUSE [INGR have' ({x}, {y})]]"
+                else:
+                    ls = f"{peticion} PURP [do' ({z}, [express.something.to.{x_clean}' ({z}, {y})])]"
+                st.session_state.ls_estructura = ls
+                st.session_state.ls_estructura_pre_do = ls
+                st.session_state.ls_paso = 'intencionalidad'
+
+            c1.button("Objeto material", use_container_width=True, key="pedir_mat", on_click=lambda: _generar_pedir(True))
+            c2.button("Información", use_container_width=True, key="pedir_inf", on_click=lambda: _generar_pedir(False))
+            botones_navegacion()
+
         elif st.session_state.ls_paso == 'generar_diccion_ra':
             pred = st.session_state.ls_pred
             x = st.session_state.ls_x
             y = st.session_state.ls_y
             z = st.session_state.ls_z
-            
-            y_clean = "something" if y in ["Ø", "0"] else y.replace(" ", ".")
             
             if pred in VERBOS_DICCION["preguntar"]:
                 ls = f"[do' ({x}, [express.question' ({x}, pregunta)]) ∧ PROC being.created' (pregunta) ∧ FIN INGR exist' (pregunta)] PURP [do' ({z}, [express.something' ({z}, {y})])]"
@@ -1573,14 +1615,18 @@ def mostrar_asistente_ls():
             z = st.session_state.ls_z
             operador = MODIFICADORES_AKT.get(AKT, "")
             
-            # Verificar transferencia
-            if pred in VERBOS_TRANSFERENCIA["sacar"]:
+            # Verbos de petición: pregunta propia
+            if pred in VERBOS_PEDIR:
+                ir_a('pregunta_pedir')
+            # Verificar transferencia. Con CI, cualquier verbo de "sacar" puede
+            # leerse con o sin propósito de quedarse con el objeto: "el ladrón
+            # le sacó la billetera a Pepe" (PURP have') frente a "el juez le
+            # sacó el permiso a Pepe" (sin PURP). Por eso siempre se pregunta.
+            elif pred in VERBOS_TRANSFERENCIA["sacar"]:
                 if pred == "arrancar" and "causativ" not in AKT:
                     ir_a('caso_locativo')
                 else:
-                    ls = f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}NOT have' ({z}, {y})] PURP [have' ({x}, {y})]"
-                    st.session_state.ls_estructura = ls
-                    ir_a_intencionalidad()
+                    ir_a('pregunta_sacar_desatribuir')
             elif pred in VERBOS_TRANSFERENCIA["dar_poner"] or (pred == "pegar" and y != "Ø"):
                 ls = f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}have' ({z}, {y})]"
                 st.session_state.ls_estructura = ls
@@ -1588,9 +1634,31 @@ def mostrar_asistente_ls():
             else:
                 ir_a('pregunta_transferencia')
 
+        elif st.session_state.ls_paso == 'pregunta_sacar_desatribuir':
+            x = st.session_state.ls_x
+            y = st.session_state.ls_y
+            st.markdown(f"¿**{x[0].upper() + x[1:]}** actúa con el propósito de quedarse con **{y}**?")
+            c1, c2 = st.columns(2)
+
+            def _generar_sacar_desatribuir(con_proposito):
+                x = st.session_state.ls_x
+                y = st.session_state.ls_y
+                z = st.session_state.ls_z
+                operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
+                ls = f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}NOT have' ({z}, {y})]"
+                if con_proposito:
+                    ls += f" PURP [have' ({x}, {y})]"
+                st.session_state.ls_estructura = ls
+                st.session_state.ls_estructura_pre_do = ls
+                st.session_state.ls_paso = 'intencionalidad'
+
+            c1.button("Sí", use_container_width=True, key="sac_des_si", on_click=lambda: _generar_sacar_desatribuir(True))
+            c2.button("No", use_container_width=True, key="sac_des_no", on_click=lambda: _generar_sacar_desatribuir(False))
+            botones_navegacion()
+
         elif st.session_state.ls_paso == 'pregunta_transferencia':
             pred = st.session_state.ls_pred
-            st.info(f"¿El significado típico de **{pred}** es la transferencia de un objeto físico?")
+            st.markdown(f"¿El significado típico de **{pred}** es la transferencia de un objeto físico?")
             c1, c2 = st.columns(2)
             
             def _trans_si():
@@ -1609,7 +1677,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_diccion':
             pred = st.session_state.ls_pred
-            st.info(f"¿Es **{pred}** un verbo de dicción?")
+            st.markdown(f"¿Es **{pred}** un verbo de dicción?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="dicc_si", on_click=crear_callback_ir_a('generar_diccion'))
             c2.button("No", use_container_width=True, key="dicc_no", on_click=crear_callback_ir_a('otros_verbos_oi'))
@@ -1622,10 +1690,8 @@ def mostrar_asistente_ls():
             z = st.session_state.ls_z
             operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
             
-            y_clean = "something" if y in ["Ø", "0"] else y.replace(" ", ".")
-            
             if pred in VERBOS_DICCION["preguntar"]:
-                ls = f"[{operador + ' ' if operador else ''}do' ({x}, [express.question' ({x})])] PURP [do' ({z}, [express.{y_clean}' ({z}, {y})])]"
+                ls = f"[{operador + ' ' if operador else ''}do' ({x}, [express.question' ({x})])] PURP [do' ({z}, [express.something' ({z}, {y})])]"
             elif pred in VERBOS_DICCION["agradecer"]:
                 arg_inc = VERBOS_DICCION["agradecer"].get(pred, pred)
                 ls = f"[{operador + ' ' if operador else ''}do' ({x}, [express.{arg_inc}' ({x}, {y})])] PURP [know' ({z}, {arg_inc} por {y})]"
@@ -1659,7 +1725,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_ensenar':
             pred = st.session_state.ls_pred
-            st.info(f"¿Es **{pred}** un verbo como *enseñar* o *mostrar*?")
+            st.markdown(f"¿Es **{pred}** un verbo como *enseñar* o *mostrar*?")
             c1, c2 = st.columns(2)
             
             def _ens_si():
@@ -1701,14 +1767,14 @@ def mostrar_asistente_ls():
 
         # --- CASOS ESPECIALES DE ESTADO ---
         elif st.session_state.ls_paso == 'caso_estado':
-            st.markdown("#### **Caso especial: Estado**")
+            st.markdown("#### Caso especial: Estado")
             x = st.session_state.ls_x
             y = st.session_state.ls_y
             oracion = st.session_state.ls_oracion
             
             if y == "Ø":
                 if x == "Ø":
-                    st.info(f"¿**{oracion[0].upper() + oracion[1:]}** describe una sensación o fenómeno climático usando *estar* como verbo no auxiliar (ej.: *está nublado*)?")
+                    st.markdown(f"¿**{oracion[0].upper() + oracion[1:]}** describe una sensación o fenómeno climático usando *estar* como verbo no auxiliar (ej.: *está nublado*)?")
                     c1, c2 = st.columns(2)
                     c1.button("Sí", use_container_width=True, key="est_clim_si", on_click=crear_callback_ir_a('estado_climatico'))
                     c2.button("No", use_container_width=True, key="est_clim_no", on_click=crear_callback_ir_a('caso_locativo'))
@@ -1725,10 +1791,14 @@ def mostrar_asistente_ls():
                 pregunta = "¿El estado resultante es un tipo de sensación o sentimiento (ej.: *miedo*, *amor*, *frío*)?"
             else:
                 pregunta = "¿El evento resultante involucra una sensación o sentimiento (ej.: *miedo*, *amor*, *frío*)?"
-            st.info(pregunta)
+            st.markdown(pregunta)
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="caus_sens_si", on_click=crear_callback_ir_a('causativo_sensacion'))
-            c2.button("No", use_container_width=True, key="caus_sens_no", on_click=crear_callback_ir_a('caso_locativo'))
+            # Sin sensación: los causativos con CI siguen por la vía del CI
+            # (dar, sacar, ocultar, enseñar...); los demás, por la locativa.
+            def _caus_sens_no():
+                st.session_state.ls_paso = 'caso_oi' if st.session_state.ls_z != "Ø" else 'caso_locativo'
+            c2.button("No", use_container_width=True, key="caus_sens_no", on_click=_caus_sens_no)
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'causativo_sensacion':
@@ -1746,9 +1816,9 @@ def mostrar_asistente_ls():
             marca_mr1 = (z != "Ø" and y == "Ø")
 
             with st.form(key="form_caus_sens"):
-                st.info("Escribe esa sensación o sentimiento (ej.: *miedo*, *amor*, *frío*):")
+                st.markdown("Escribe esa sensación o sentimiento (ej.: *miedo*, *amor*, *frío*):")
                 pred = st.text_input("Sensación", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     if operador:
@@ -1763,9 +1833,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'estado_climatico':
             with st.form(key="form_est_clim"):
-                st.info("Escribe la sensación o fenómeno climático (ej.: *frío*, *nublado*):")
+                st.markdown("Escribe la sensación o fenómeno climático (ej.: *frío*, *nublado*):")
                 pred = st.text_input("Sensación", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     ls = f"{pred}' (weather)"
@@ -1776,7 +1846,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_ser_esencial':
             x = st.session_state.ls_x
             oracion = st.session_state.ls_oracion
-            st.info(f"¿**{oracion[0].upper() + oracion[1:]}** expresa un atributo esencial del sujeto usando **ser** (ej.: *Ana es alta*)?")
+            st.markdown(f"¿**{oracion[0].upper() + oracion[1:]}** expresa un atributo esencial del sujeto usando **ser** (ej.: *Ana es alta*)?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="ser_si", on_click=crear_callback_ir_a('estado_ser'))
             c2.button("No", use_container_width=True, key="ser_no", on_click=crear_callback_ir_a('pregunta_sensacion_estado'))
@@ -1784,9 +1854,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'estado_ser':
             with st.form(key="form_est_ser"):
-                st.info("Escribe el atributo:")
+                st.markdown("Escribe el atributo:")
                 pred = st.text_input("Atributo", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     x = st.session_state.ls_x
@@ -1796,7 +1866,7 @@ def mostrar_asistente_ls():
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'pregunta_sensacion_estado':
-            st.info("¿El estado es un tipo de sensación o sentimiento (ej.: *frío* o *amor*)?")
+            st.markdown("¿El estado es un tipo de sensación o sentimiento (ej.: *frío* o *amor*)?")
             st.warning("(Si es un verbo de percepción sensorial, responde que no)")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="sens_si", on_click=crear_callback_ir_a('estado_sensacion'))
@@ -1805,9 +1875,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'estado_sensacion':
             with st.form(key="form_est_sens"):
-                st.info("Escribe esa sensación o sentimiento (ej.: *frío* o *enamorado*):")
+                st.markdown("Escribe esa sensación o sentimiento (ej.: *frío* o *enamorado*):")
                 pred = st.text_input("Sensación", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     x = st.session_state.ls_x
@@ -1818,7 +1888,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_sensacion_od':
             y = st.session_state.ls_y
-            st.info(f"¿*{y[0].upper() + y[1:]}* expresa una sensación o sentimiento?")
+            st.markdown(f"¿*{y[0].upper() + y[1:]}* expresa una sensación o sentimiento?")
             c1, c2 = st.columns(2)
             
             def _sens_od_si():
@@ -1849,7 +1919,7 @@ def mostrar_asistente_ls():
                 f"¿Alguno de sus constituyentes argumentales (no periféricos) o el atributo (si es pertinente) indica la ubicación, el destino o el punto de partida de **{texto_participantes}**?"
             )
 
-            st.info(msg)
+            st.markdown(msg)
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="loc_si", on_click=crear_callback_ir_a('obtener_locativo'))
             c2.button("No", use_container_width=True, key="loc_no", on_click=crear_callback_ir_a('info_mente'))
@@ -1857,11 +1927,11 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'obtener_locativo':
             with st.form(key="form_loc"):
-                st.info("Escribe la información del lugar, sin preposición:")
+                st.markdown("Escribe la información del lugar, sin preposición:")
                 locus = st.text_input("Lugar", label_visibility="collapsed")
-                st.info("Escribe el infinitivo del verbo:")
+                st.markdown("Escribe el infinitivo del verbo:")
                 pred = st.text_input("infinitivo", label_visibility="collapsed")
-                if st.form_submit_button("Siguiente"):
+                if st.form_submit_button("Siguiente", type="primary"):
                     st.session_state.ls_locus = locus
                     st.session_state.ls_pred = pred.lower().replace(" ", ".")
                     ir_a('procesar_locativo')
@@ -1899,13 +1969,10 @@ def mostrar_asistente_ls():
                 ls = f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}NOT be-LOC' ({locus}, {y})]"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
-            # Verbos de movimiento
+            # Verbos no causativos con locativo: siempre se pregunta si hubo
+            # cambio de ubicación, esté o no el verbo en VERBOS_MOVIMIENTO.
             elif AKT in ("actividad", "logro", "realización", "proceso", "semelfactivo"):
-                categoria_mov = buscar_verbo(pred, VERBOS_MOVIMIENTO)
-                if categoria_mov:
-                    ir_a('pregunta_lugar_tipo')
-                else:
-                    ir_a('pregunta_resultado_loc')
+                ir_a('pregunta_resultado_loc')
             # Verbos causativos con locativo
             elif AKT in ("logro causativo", "realización causativa", "proceso causativo", "semelfactivo causativo"):
                 ir_a('pregunta_resultado_loc_caus')
@@ -1918,7 +1985,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_tener_locativo':
             x = st.session_state.ls_x
             y = st.session_state.ls_y
-            st.info(f"¿*{y[0].upper() + y[1:]}* está situado en alguna parte de **{x}**?")
+            st.markdown(f"¿*{y[0].upper() + y[1:]}* está situado en alguna parte de **{x}**?")
             c1, c2 = st.columns(2)
             
             def _ten_loc_si():
@@ -1947,7 +2014,7 @@ def mostrar_asistente_ls():
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             else:
-                st.info(f"¿*{y[0].upper() + y[1:]}* indica una relación de parentesco?")
+                st.markdown(f"¿*{y[0].upper() + y[1:]}* indica una relación de parentesco?")
                 c1, c2 = st.columns(2)
                 
                 def _par_loc_si():
@@ -1957,7 +2024,7 @@ def mostrar_asistente_ls():
                     ls = f"have.as.kin' ({x}, {y}) ∧ be-LOC' ({locus}, {y})"
                     st.session_state.ls_estructura = ls
                     st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
-                st.session_state.ls_paso = 'intencionalidad'
+                    st.session_state.ls_paso = 'intencionalidad'
                 
                 def _par_loc_no():
                     x = st.session_state.ls_x
@@ -1967,7 +2034,7 @@ def mostrar_asistente_ls():
                     ls = f"{pred}' ({x}, {y}) ∧ be-LOC' ({locus}, {y})"
                     st.session_state.ls_estructura = ls
                     st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
-                st.session_state.ls_paso = 'intencionalidad'
+                    st.session_state.ls_paso = 'intencionalidad'
                 
                 c1.button("Sí", use_container_width=True, key="par_loc_si", on_click=_par_loc_si)
                 c2.button("No", use_container_width=True, key="par_loc_no", on_click=_par_loc_no)
@@ -1976,7 +2043,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_resultado_loc':
             x = st.session_state.ls_x
             locus = st.session_state.ls_locus
-            st.info(f"¿Como resultado del evento, **{x}** dejó de estar o llegó a estar en **{locus}**?")
+            st.markdown(f"¿Como resultado del evento, **{x}** dejó de estar o llegó a estar en **{locus}**?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="res_loc_si", on_click=crear_callback_ir_a('pregunta_lugar_tipo'))
             c2.button("No", use_container_width=True, key="res_loc_no", on_click=crear_callback_ir_a('generar_basico'))
@@ -1984,7 +2051,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_lugar_tipo':
             locus = st.session_state.ls_locus
-            st.info(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
+            st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
             c1, c2 = st.columns(2)
             c1.button("1. Procedencia", use_container_width=True, key="proc", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="1"))
             c2.button("2. Destino", use_container_width=True, key="dest", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="2"))
@@ -2014,7 +2081,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_resultado_loc_caus':
             y = st.session_state.ls_y
             locus = st.session_state.ls_locus
-            st.info(f"¿Como resultado del evento, **{y}** dej.ó de estar o llegó a estar en **{locus}**?")
+            st.markdown(f"¿Como resultado del evento, **{y}** dejó de estar o llegó a estar en **{locus}**?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="res_loc_caus_si", on_click=crear_callback_ir_a('pregunta_lugar_tipo_caus'))
             c2.button("No", use_container_width=True, key="res_loc_caus_no", on_click=crear_callback_ir_a('generar_basico'))
@@ -2022,7 +2089,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'pregunta_lugar_tipo_caus':
             locus = st.session_state.ls_locus
-            st.info(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
+            st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
             c1, c2 = st.columns(2)
             c1.button("Procedencia", use_container_width=True, key="proc_caus", on_click=crear_callback_ir_a('generar_movimiento_caus', ls_lugar_tipo="1"))
             c2.button("Destino", use_container_width=True, key="dest_caus", on_click=crear_callback_ir_a('generar_movimiento_caus', ls_lugar_tipo="2"))
@@ -2060,7 +2127,7 @@ def mostrar_asistente_ls():
             else:
                 x = st.session_state.ls_x
                 oracion = st.session_state.ls_oracion
-                st.info(f"¿**{oracion[0].upper() + oracion[1:]}** describe que **{x}** tiene en su mente o llega a tener en su mente lo expresado en **{y}**?")
+                st.markdown(f"¿**{oracion[0].upper() + oracion[1:]}** describe que **{x}** tiene en su mente o llega a tener en su mente lo expresado en **{y}**?")
                 st.warning("(Si se trata de un verbo de dicción o de percepción sensorial, responde que no)")
                 c1, c2 = st.columns(2)
                 
@@ -2072,7 +2139,7 @@ def mostrar_asistente_ls():
                     ls = f"{operador + ' ' if operador else ''}know' ({x}, {y})"
                     st.session_state.ls_estructura = ls
                     st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
-                st.session_state.ls_paso = 'intencionalidad'
+                    st.session_state.ls_paso = 'intencionalidad'
                 
                 c1.button("Sí", use_container_width=True, key="mente_si", on_click=_mente_si)
                 c2.button("No", use_container_width=True, key="mente_no", on_click=crear_callback_ir_a('complemento_regimen'))
@@ -2085,7 +2152,7 @@ def mostrar_asistente_ls():
             oracion = st.session_state.ls_oracion
             
             if AKT in ["estado", "actividad", "proceso", "logro", "realización", "semelfactivo"] and y == "Ø":
-                st.info(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *de defectos* en *la obra carece de defectos*)?")
+                st.markdown(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *de defectos* en *la obra carece de defectos*)?")
                 c1, c2 = st.columns(2)
                 c1.button("Sí", use_container_width=True, key="cr_si", on_click=crear_callback_ir_a('obtener_complemento_regimen'))
                 c2.button("No", use_container_width=True, key="cr_no", on_click=crear_callback_ir_a('predicado'))
@@ -2095,11 +2162,11 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'obtener_complemento_regimen':
             with st.form(key="form_cr"):
-                st.info("Escribe el infinitivo del verbo:")
+                st.markdown("Escribe el infinitivo del verbo:")
                 verbo = st.text_input("Infinitivo", label_visibility="collapsed")
-                st.info("Escribe la información del complemento de régimen (sin preposición):")
+                st.markdown("Escribe la información del complemento de régimen (sin preposición):")
                 suplemento = st.text_input("Supl", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = verbo.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     st.session_state.ls_complemento_regimen = suplemento  # GUARDAR
@@ -2198,9 +2265,9 @@ def mostrar_asistente_ls():
             pred = st.session_state.ls_pred
             oracion = st.session_state.ls_oracion
             with st.form(key="form_perc_imp"):
-                st.info(f"Escribe la cualidad percibida en **{oracion}** (ej.: *mal*, *raro*, *a chocolate*):")
+                st.markdown(f"Escribe la cualidad percibida en **{oracion}** (ej.: *mal*, *raro*, *a chocolate*):")
                 cualidad = st.text_input("Cualidad", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     cualidad = cualidad.lower().replace(" ", ".")
                     x = st.session_state.ls_x
                     operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
@@ -2215,7 +2282,7 @@ def mostrar_asistente_ls():
         # Pregunta de interlocutor para verbos recíprocos
         elif st.session_state.ls_paso == 'pregunta_interlocutor':
             oracion = st.session_state.ls_oracion
-            st.info(f"¿Hay un interlocutor en **{oracion}**?")
+            st.markdown(f"¿Hay un interlocutor en **{oracion}**?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="interloc_si", on_click=crear_callback_ir_a('obtener_interlocutor'))
             c2.button("No", use_container_width=True, key="interloc_no", on_click=crear_callback_ir_a('generar_basico'))
@@ -2223,9 +2290,9 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'obtener_interlocutor':
             with st.form(key="form_interlocutor"):
-                st.info("Escribe quién es el interlocutor:")
+                st.markdown("Escribe quién es el interlocutor:")
                 interlocutor = st.text_input("inter", label_visibility="collapsed")
-                if st.form_submit_button("Siguiente"):
+                if st.form_submit_button("Siguiente", type="primary"):
                     st.session_state.ls_interlocutor = interlocutor
                     ir_a('pregunta_intencionalidad_reciproca')
             botones_navegacion()
@@ -2233,7 +2300,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_intencionalidad_reciproca':
             x = st.session_state.ls_x
             z = st.session_state.ls_interlocutor
-            st.info(f"¿Tanto **{x}** como **{z}** actuaron de manera intencional en la conversación?")
+            st.markdown(f"¿Tanto **{x}** como **{z}** actuaron de manera intencional en la conversación?")
             c1, c2 = st.columns(2)
             
             def _gen_reciproco(intencional):
@@ -2243,7 +2310,6 @@ def mostrar_asistente_ls():
                 operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
                 
                 x_clean = x.replace(" ", ".")
-                y_clean = y.replace(" ", ".")
                 z_clean = z.replace(" ", ".")
                 
                 parte1 = f"[do' ({x}, [express.something.to.{z_clean}' ({x}, {y})])] PURP [{operador + ' ' if operador else ''}know' ({z}, {y})]"
@@ -2266,7 +2332,7 @@ def mostrar_asistente_ls():
         elif st.session_state.ls_paso == 'pregunta_posesion_parte':
             x = st.session_state.ls_x
             y = st.session_state.ls_y
-            st.info(f"¿*{y[0].upper() + y[1:]}* es una parte constituyente de **{x}**?")
+            st.markdown(f"¿*{y[0].upper() + y[1:]}* es una parte constituyente de **{x}**?")
             c1, c2 = st.columns(2)
             
             def _pos_parte_si():
@@ -2287,7 +2353,7 @@ def mostrar_asistente_ls():
             
             # Solo preguntar por parentesco si es uno de estos verbos específicos
             if pred in ["tener", "poseer", "ostentar", "lucir"]:
-                st.info(f"¿*{y[0].upper() + y[1:]}* indica una relación de parentesco?")
+                st.markdown(f"¿*{y[0].upper() + y[1:]}* indica una relación de parentesco?")
                 c1, c2 = st.columns(2)
                 
                 def _pos_kin_si():
@@ -2296,7 +2362,7 @@ def mostrar_asistente_ls():
                     ls = f"have.as.kin' ({x}, {y})"
                     st.session_state.ls_estructura = ls
                     st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
-                st.session_state.ls_paso = 'intencionalidad'
+                    st.session_state.ls_paso = 'intencionalidad'
                 
                 def _pos_kin_no():
                     x = st.session_state.ls_x
@@ -2304,7 +2370,7 @@ def mostrar_asistente_ls():
                     ls = f"have' ({x}, {y})"
                     st.session_state.ls_estructura = ls
                     st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
-                st.session_state.ls_paso = 'intencionalidad'
+                    st.session_state.ls_paso = 'intencionalidad'
                 
                 c1.button("Sí", use_container_width=True, key="pos_kin_si", on_click=_pos_kin_si)
                 c2.button("No", use_container_width=True, key="pos_kin_no", on_click=_pos_kin_no)
@@ -2371,7 +2437,7 @@ def mostrar_asistente_ls():
         # Pregunta de percepción sensorial (como en CLI)
         elif st.session_state.ls_paso == 'pregunta_percepcion':
             pred = st.session_state.ls_pred
-            st.info(f"¿*{pred[0].upper() + pred[1:]}* indica un tipo de percepción sensorial?")
+            st.markdown(f"¿*{pred[0].upper() + pred[1:]}* indica un tipo de percepción sensorial?")
             c1, c2 = st.columns(2)
             
             def _perc_si():
@@ -2391,10 +2457,10 @@ def mostrar_asistente_ls():
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'seleccionar_sentido':
-            st.markdown("#### **Sentido de la percepción**")
+            st.markdown("#### Sentido de la percepción")
             
             with st.form(key="form_sentidos"):
-                st.info("Indica el sentido involucrado en el acto de percepción:")
+                st.markdown("Indica el sentido involucrado en el acto de percepción:")
                 
                 sentidos_map = {
                     "Vista": "see",
@@ -2412,7 +2478,7 @@ def mostrar_asistente_ls():
                     label_visibility="collapsed"
                 )
                 
-                if st.form_submit_button("Confirmar sentido", use_container_width=True):
+                if st.form_submit_button("Confirmar sentido", type="primary", use_container_width=True):
                     if seleccion:
                         # Asignamos la constante RRG correspondiente (see, hear, etc.)
                         st.session_state.ls_pred = sentidos_map[seleccion]
@@ -2444,10 +2510,10 @@ def mostrar_asistente_ls():
                 botones_navegacion()
 
         elif st.session_state.ls_paso == 'realizacion_activa':
-            st.markdown("#### **Realización activa**")
+            st.markdown("#### Realización activa")
     
             with st.form(key="form_realizacion_activa"):
-                st.info("Selecciona la clase semántica que mejor se ajuste al verbo:")
+                st.markdown("Selecciona la clase semántica que mejor se ajuste al verbo:")
         
                 tipo_verbo = st.radio(
                     "Tipo de verbo",
@@ -2456,7 +2522,7 @@ def mostrar_asistente_ls():
                     label_visibility="collapsed"
                 )
         
-                if st.form_submit_button("Siguiente", use_container_width=True):
+                if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
                     if tipo_verbo == "Creación":
                         ir_a('ra_creacion')
                     elif tipo_verbo == "Consumo":
@@ -2478,9 +2544,9 @@ def mostrar_asistente_ls():
             
             if es_causativa:
                 with st.form(key="form_ra_creacion_caus"):
-                    st.info(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *escribir*):")
+                    st.markdown(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *escribir*):")
                     pred = st.text_input("infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Generar estructura"):
+                    if st.form_submit_button("Generar estructura", type="primary"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
                         ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.created' ({y}) ∧ FIN INGR exist' ({y})]"
@@ -2502,9 +2568,9 @@ def mostrar_asistente_ls():
             
             if es_causativa:
                 with st.form(key="form_ra_consumo_caus"):
-                    st.info("Escribe el infinitivo del verbo de la oración original (ej.: *alimentar*):")
+                    st.markdown("Escribe el infinitivo del verbo de la oración original (ej.: *alimentar*):")
                     verbo_original = st.text_input("infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Siguiente"):
+                    if st.form_submit_button("Siguiente", type="primary"):
                         st.session_state.ls_verbo_consumo = verbo_original.lower().replace(" ", ".")
                         st.session_state.ls_pred = verbo_original.lower().replace(" ", ".")
                         ir_a('ra_consumo_caus_2')
@@ -2523,11 +2589,11 @@ def mostrar_asistente_ls():
             
             if verbo in ["alimentar", "nutrir", "cebar", "hidratar", "saciar", "empachar"]:
                 with st.form(key="form_ra_consumo_alim"):
-                    st.info(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
+                    st.markdown(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
                     pred = st.text_input("infinitivo", label_visibility="collapsed")
-                    st.info("Escribe el alimento que fue consumido (ej.: *una manzana*):")
+                    st.markdown("Escribe el alimento que fue consumido (ej.: *una manzana*):")
                     alimento = st.text_input("alimento", label_visibility="collapsed")
-                    if st.form_submit_button("Generar estructura"):
+                    if st.form_submit_button("Generar estructura", type="primary"):
                         pred = pred.lower().replace(" ", ".")
                         alimento = alimento.lower().replace(" ", ".")
                         ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y}, {alimento})]) ∧ PROC being.consumed' ({alimento}) ∧ FIN INGR consumed' ({alimento})]"
@@ -2535,9 +2601,9 @@ def mostrar_asistente_ls():
                         ir_a_intencionalidad()
             else:
                 with st.form(key="form_ra_consumo_otro"):
-                    st.info(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *comer*):")
+                    st.markdown(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *comer*):")
                     pred = st.text_input("infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Generar estructura"):
+                    if st.form_submit_button("Generar estructura", type="primary"):
                         pred = pred.lower().replace(" ", ".")
                         ls = f"[do' ({x}, Ø)] CAUSE [do' ({z}, [{pred}' ({z}, {y})]) ∧ PROC being.consumed' ({y}) ∧ FIN INGR consumed' ({y})]"
                         st.session_state.ls_estructura = ls
@@ -2550,6 +2616,18 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             y = st.session_state.ls_y
             locus = st.session_state.ls_locus
+            
+            # CD sin locativo en cláusula no causativa: el CD puede ser un lugar
+            # que se atraviesa ("Pepe cruzó el río") o un recorrido que se
+            # completa, como tema incremental ("Pepe corrió una maratón"). En el
+            # segundo caso corresponde la plantilla de consumo. La pregunta va
+            # antes de sustituir el predicado por la categoría de
+            # VERBOS_MOVIMIENTO, para que ra_consumo reciba el infinitivo
+            # original.
+            if (not es_causativa and locus == "Ø" and y != "Ø"
+                    and st.session_state.get('ls_despl_cd_tipo') is None):
+                ir_a('pregunta_despl_cd')
+            
             pred = st.session_state.ls_pred
             
             # Buscar categoría de movimiento
@@ -2578,16 +2656,25 @@ def mostrar_asistente_ls():
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             elif locus != "Ø" and y != "Ø":
-                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ INGR FIN be-LOC' ({locus}, {x})"
+                ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC covering.path.distance' ({x}, {y}) ∧ FIN INGR be-LOC' ({locus}, {x})"
                 st.session_state.ls_estructura = ls
                 ir_a_intencionalidad()
             else:
                 ir_a('ra_despl_lugar')
             botones_navegacion()
 
+        elif st.session_state.ls_paso == 'pregunta_despl_cd':
+            x = st.session_state.ls_x
+            y = st.session_state.ls_y
+            st.markdown(f"Como resultado del desplazamiento, ¿**{x}** queda al otro lado de **{y}**, o **{x}** completa el recorrido señalado en **{y}**?")
+            c1, c2 = st.columns(2)
+            c1.button("Queda al otro lado", use_container_width=True, key="despl_cd_lado", on_click=crear_callback_ir_a('ra_desplazamiento', ls_despl_cd_tipo='trayecto'))
+            c2.button("Completa el recorrido", use_container_width=True, key="despl_cd_recorrido", on_click=crear_callback_ir_a('ra_consumo', ls_despl_cd_tipo='consumo'))
+            botones_navegacion()
+
         elif st.session_state.ls_paso == 'ra_despl_lugar':
             locus = st.session_state.ls_locus
-            st.info(f"¿*{locus[0].upper() + locus[1:]}* es (1) la procedencia o (2) el destino?")
+            st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es (1) la procedencia o (2) el destino?")
             c1, c2 = st.columns(2)
             c1.button("1. Procedencia", use_container_width=True, key="despl_proc", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="NOT be-LOC'"))
             c2.button("2. Destino", use_container_width=True, key="despl_dest", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="be-LOC'"))
@@ -2603,9 +2690,9 @@ def mostrar_asistente_ls():
             
             if es_causativa:
                 with st.form(key="form_despl_caus"):
-                    st.info(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *correr*):")
+                    st.markdown(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *correr*):")
                     pred = st.text_input("infinitivo", label_visibility="collapsed")
-                    if st.form_submit_button("Generar estructura"):
+                    if st.form_submit_button("Generar estructura", type="primary"):
                         pred = pred.lower().replace(" ", ".")
                         st.session_state.ls_pred = pred
                         ls = f"[do' ({x}, Ø)] CAUSE [do' ({y}, [{pred}' ({y})]) ∧ PROC covering.path.distance' ({y}) ∧ FIN INGR {fin_loc} ({locus}, {y})]"
@@ -2629,9 +2716,9 @@ def mostrar_asistente_ls():
             if es_causativa:
                 if z != "Ø":
                     with st.form(key="form_ra_otros_z"):
-                        st.info(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *comer*):")
+                        st.markdown(f"Escribe en infinitivo la actividad realizada por **{z}** (ej.: *comer*):")
                         pred = st.text_input("infinitivo", label_visibility="collapsed")
-                        if st.form_submit_button("Generar estructura"):
+                        if st.form_submit_button("Generar estructura", type="primary"):
                             pred = pred.lower().replace(" ", ".")
                             participio = infinitivo_a_participio(pred).replace(" ", ".")
                             st.session_state.ls_pred = pred
@@ -2653,7 +2740,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'ra_otros_regimen':
             oracion = st.session_state.ls_oracion
-            st.info(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *en mi amigo* en *Ana transformó a Pepe en mi amigo*)?")
+            st.markdown(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *en mi amigo* en *Ana transformó a Pepe en mi amigo*)?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="ra_reg_si", on_click=crear_callback_ir_a('ra_otros_regimen_form'))
             c2.button("No", use_container_width=True, key="ra_reg_no", on_click=crear_callback_ir_a('ra_otros_sin_regimen'))
@@ -2663,13 +2750,13 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             y = st.session_state.ls_y
             with st.form(key="form_ra_reg"):
-                st.info(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *transformarse*):")
+                st.markdown(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *transformarse*):")
                 pred = st.text_input("inf", label_visibility="collapsed")
-                st.info("Escribe la preposición regida por el verbo (ej.: *en*):")
+                st.markdown("Escribe la preposición regida por el verbo (ej.: *en*):")
                 prep = st.text_input("Prep", label_visibility="collapsed")
-                st.info("Escribe la información del complemento de régimen (sin preposición) (ej.: *mi amigo*):")
+                st.markdown("Escribe la información del complemento de régimen (sin preposición) (ej.: *mi amigo*):")
                 suplemento = st.text_input("Supl", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     prep = prep.lower().replace(" ", ".")
@@ -2684,9 +2771,9 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             y = st.session_state.ls_y
             with st.form(key="form_ra_sin_reg"):
-                st.info(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
+                st.markdown(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
                 pred = st.text_input("Inf", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     st.session_state.ls_pred = pred
@@ -2697,7 +2784,7 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'ra_otros_regimen_nc':
             oracion = st.session_state.ls_oracion
-            st.info(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *en mi amigo* en *Pepe se transformó en mi amigo*)?")
+            st.markdown(f"¿Alguno de los constituyentes de **{oracion}** es un complemento de régimen (ej.: *en mi amigo* en *Pepe se transformó en mi amigo*)?")
             c1, c2 = st.columns(2)
             c1.button("Sí", use_container_width=True, key="ra_reg_nc_si", on_click=crear_callback_ir_a('ra_otros_regimen_nc_form'))
             c2.button("No", use_container_width=True, key="ra_reg_nc_no", on_click=crear_callback_ir_a('ra_otros_sin_regimen_nc'))
@@ -2707,15 +2794,15 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             pred = st.session_state.ls_pred
             with st.form(key="form_ra_reg_nc"):
-                st.info("Escribe la preposición regida por el verbo (ej.: *en*):")
+                st.markdown("Escribe la preposición regida por el verbo (ej.: *en*):")
                 prep = st.text_input("Prep", label_visibility="collapsed")
-                st.info("Escribe la información del complemento de régimen (sin preposición) (ej.: *mi amigo*):")
+                st.markdown("Escribe la información del complemento de régimen (sin preposición) (ej.: *mi amigo*):")
                 suplemento = st.text_input("Supl", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     participio = infinitivo_a_participio(pred).replace(" ", ".")
                     prep = prep.lower().replace(" ", ".")
                     st.session_state.ls_complemento_regimen = suplemento
-                    ls = f"do' ({x}, [{pred}.{prep}' ({x}, {suplemento})]) ∧ PROC {participio}.{prep}' ({x}, {suplemento}) ∧ FIN INGR {participio}.{prep}' ({x}, {suplemento})"
+                    ls = f"do' ({x}, [{pred}.{prep}' ({x}, {suplemento})]) ∧ PROC being.{participio}.{prep}' ({x}, {suplemento}) ∧ FIN INGR {participio}.{prep}' ({x}, {suplemento})"
                     st.session_state.ls_estructura = ls
                     ir_a_intencionalidad()
             botones_navegacion()
@@ -2724,7 +2811,7 @@ def mostrar_asistente_ls():
             x = st.session_state.ls_x
             pred = st.session_state.ls_pred
             participio = infinitivo_a_participio(pred).replace(" ", ".")
-            ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC {participio}' ({x}) ∧ FIN INGR {participio}' ({x})"
+            ls = f"do' ({x}, [{pred}' ({x})]) ∧ PROC being.{participio}' ({x}) ∧ FIN INGR {participio}' ({x})"
             st.session_state.ls_estructura = ls
             ir_a_intencionalidad()
             botones_navegacion()
@@ -2735,9 +2822,9 @@ def mostrar_asistente_ls():
             operador = MODIFICADORES_AKT.get(st.session_state.ls_akt, "")
             
             with st.form(key="form_act_caus"):
-                st.info(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
+                st.markdown(f"Escribe en infinitivo la actividad realizada por **{y}** (ej.: *comer*):")
                 pred = st.text_input("Inf", label_visibility="collapsed")
-                if st.form_submit_button("Generar estructura"):
+                if st.form_submit_button("Generar estructura", type="primary"):
                     pred = pred.lower().replace(" ", ".")
                     st.session_state.ls_pred = pred
                     ls = f"[do' ({x}, Ø)] CAUSE [{operador + ' ' if operador else ''}do' ({y}, [{pred}' ({y})])]"
@@ -2753,15 +2840,14 @@ def mostrar_asistente_ls():
             oracion = st.session_state.ls_oracion
             es_verbo_reciproco = st.session_state.get('ls_es_verbo_reciproco', False)
             
-            # No preguntar intencionalidad si es verbo recíproco (ya se manej.ó)
+            # No preguntar intencionalidad si es verbo recíproco (ya se manejó)
             if es_verbo_reciproco:
                 ir_a('anticausativa')
             elif x != "Ø" and (es_dinamico or "causativ" in AKT):
-                st.info(f"¿La acción de **{oracion}** fue efectuada intencionalmente por **{x}**?")
+                st.markdown(f"¿La acción de **{oracion}** fue efectuada intencionalmente por **{x}**?")
                 c1, c2 = st.columns(2)
                 
                 def _int_si():
-                    x = st.session_state.ls_x
                     estructura_con_do = aplicar_DO(st.session_state.ls_estructura)
                     st.session_state.ls_estructura = estructura_con_do
                     st.session_state.ls_estructura_con_do = estructura_con_do  # GUARDAR
@@ -2784,14 +2870,18 @@ def mostrar_asistente_ls():
             y = st.session_state.ls_y
             
             if AKT in ["realización", "logro", "proceso", "semelfactivo"] and y == "Ø":
-                st.info("¿El verbo de la cláusula está construido con el clítico *se* y tiene una contraparte causativa (ej.: *romperse* / *romper*)?")
+                st.markdown("¿El verbo de la cláusula está construido con el clítico *se* y tiene una contraparte causativa (ej.: *romperse* / *romper*)?")
                 c1, c2 = st.columns(2)
                 
                 def _anti_si():
                     st.session_state.ls_estructura = aplicar_anticausativa(st.session_state.ls_estructura)
                     st.session_state.ls_via_anticausativa = True
-                    # Solo actualizar ls_estructura_pre_do si no se aplicó DO
-                    if not st.session_state.get('ls_estructura_con_do'):
+                    if st.session_state.get('ls_estructura_con_do'):
+                        # Ya se aplicó DO: la capa anticausativa se añade también
+                        # a las dos versiones guardadas que muestra el panel
+                        st.session_state.ls_estructura_con_do = st.session_state.ls_estructura
+                        st.session_state.ls_estructura_pre_do = aplicar_anticausativa(st.session_state.ls_estructura_pre_do)
+                    else:
                         st.session_state.ls_estructura_pre_do = st.session_state.ls_estructura
                     st.session_state.ls_paso = 'resultado'
                 
@@ -2820,43 +2910,16 @@ def mostrar_asistente_ls():
             fallos_traduccion = []
             ls_traducida = traducir_ls_a_ingles(st.session_state.ls_estructura, usar_html=True, fallos=fallos_traduccion)
             st.session_state.ls_estructura_traducida = ls_traducida
+            # Traducción nueva: las correcciones manuales previas ya no aplican
+            st.session_state.ls_correcciones_pred = {}
             # Se guarda en session_state porque 'seleccionar_predicados' la necesita
             # para saber cuál predicado corregir es en realidad un fallo técnico y
             # cuál es solo una traducción que el usuario quiere afinar.
             st.session_state.ls_fallos_traduccion = fallos_traduccion
             
-            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            mostrar_ls_resultado(ls_traducida)
             
-            # Nota teórica sobre notación alternativa, solo si el caso la activa.
-            # Las líneas se unen con \n en vez de escribirse como docstring
-            # indentado, para que la sangría del código no se interprete como
-            # bloque de código dentro del markdown.
-            akt_actual = st.session_state.ls_akt
-            usa_proc_fin = akt_actual in ("realización activa", "realización activa causativa")
-            usa_causa_anticausativa = st.session_state.get('ls_via_anticausativa', False)
-
-            if usa_proc_fin or usa_causa_anticausativa:
-                with st.expander("📚 Nota teórica: notación alternativa"):
-                    if usa_proc_fin:
-                        st.markdown("\n".join([
-                            "**Fase procesual y estado resultante (realización activa)**",
-                            "",
-                            "Este programa representa la fase procesual y el estado resultante como dos conjuntos simultáneos, siguiendo la revisión de Van Valin (2023), que incorpora la propuesta de Osswald para resolver la «anomalía del y-entonces» de la notación anterior.",
-                            "",
-                            "- Este programa: `do' (x, [pred' (x, y)]) ∧ PROC being.consumed' (y) ∧ FIN INGR consumed' (y)`",
-                            "- Van Valin y LaPolla (1997) / Van Valin (2005): `do' (x, [pred' (x, y)]) & INGR consumed' (y)`",
-                        ]))
-                    if usa_proc_fin and usa_causa_anticausativa:
-                        st.write("---")
-                    if usa_causa_anticausativa:
-                        st.markdown("\n".join([
-                            "**Anticausativo con componente causal conservado**",
-                            "",
-                            "Este programa conserva el operador `CAUSE` con el argumento causante inespecificado, en vez de eliminarlo, siguiendo González Vergara (2006).",
-                            "",
-                            "- Este programa: `[do' (Ø, Ø)] CAUSE [INGR broken' (jarrón)]`",
-                            "- Tratamiento estándar: `INGR broken' (jarrón)`",
-                        ]))
+            mostrar_nota_teorica(ls_traducida)
             
             # Extraer predicados modificables
             predicados = extraer_predicados_de_ls(ls_traducida)
@@ -2874,7 +2937,7 @@ def mostrar_asistente_ls():
                 c2.button("No, continuar", use_container_width=True, key="mod_pred_no", on_click=crear_callback_ir_a('preguntar_operadores'))
             elif predicados:
                 st.warning("El programa traduce automáticamente los predicados del español al inglés, pero puede cometer errores en casos de ambigüedad léxica.")
-                st.info("¿Quieres modificar alguno de los predicados?")
+                st.markdown("¿Quieres modificar alguno de los predicados?")
                 
                 c1, c2 = st.columns(2)
                 c1.button("Sí, modificar predicados", use_container_width=True, key="mod_pred_si", on_click=crear_callback_ir_a('seleccionar_predicados'))
@@ -2883,17 +2946,17 @@ def mostrar_asistente_ls():
                 ir_a('preguntar_operadores')
             
             st.write("---")
-            st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key="otra", on_click=reiniciar_analisis)
+            st.button("Iniciar un nuevo análisis", use_container_width=True, key="nav_reset_resultado", on_click=reiniciar_analisis)
 
         # --- PREGUNTAR OPERADORES ---
         elif st.session_state.ls_paso == 'preguntar_operadores':
             st.markdown("### Estructura lógica generada")
             
             ls_traducida = st.session_state.ls_estructura_traducida
-            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            mostrar_ls_resultado(ls_traducida)
             
             st.write("---")
-            st.info("¿Quieres añadir operadores a la estructura lógica?")
+            st.markdown("¿Quieres añadir operadores a la estructura lógica?")
             c1, c2 = st.columns(2)
             
             def _op_no():
@@ -2904,14 +2967,14 @@ def mostrar_asistente_ls():
             c2.button("No, finalizar", use_container_width=True, key="op_no", on_click=_op_no)
             
             st.write("---")
-            st.button("↺ Iniciar un nuevo análisis", use_container_width=True, key="otra_preop", on_click=reiniciar_analisis)
+            st.button("Iniciar un nuevo análisis", use_container_width=True, key="nav_reset_preop", on_click=reiniciar_analisis)
 
         # --- SELECCIONAR PREDICADOS A MODIFICAR ---
         elif st.session_state.ls_paso == 'seleccionar_predicados':
             st.markdown("### Corrección de predicados")
             
             ls_traducida = st.session_state.ls_estructura_traducida
-            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            mostrar_ls_resultado(ls_traducida)
             
             st.write("---")
             
@@ -2923,7 +2986,7 @@ def mostrar_asistente_ls():
                 if pred in st.session_state.get('ls_fallos_traduccion', []):
                     st.error(f"No se pudo traducir automáticamente **{pred}**. Escribe la traducción correcta:")
                 else:
-                    st.info(f"El predicado traducido es **{pred}**. ¿Quieres modificarlo?")
+                    st.markdown(f"El predicado traducido es **{pred}**. ¿Quieres modificarlo?")
                 
                 with st.form(key="form_corregir_unico"):
                     nuevo_valor = st.text_input(
@@ -2935,17 +2998,18 @@ def mostrar_asistente_ls():
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.form_submit_button("Guardar cambio", use_container_width=True):
+                        if st.form_submit_button("Guardar cambio", type="primary", use_container_width=True):
                             if nuevo_valor.strip() and nuevo_valor.strip() != pred:
                                 ls_corregida = reemplazar_predicado_en_ls(ls_traducida, pred, nuevo_valor.strip())
                                 st.session_state.ls_estructura_traducida = ls_corregida
+                                registrar_correccion(pred, nuevo_valor.strip())
                             ir_a('preguntar_operadores')
                     with col2:
                         if st.form_submit_button("Cancelar", use_container_width=True):
                             ir_a('preguntar_operadores')
             else:
                 # Múltiples predicados: mostrar lista con checkboxes
-                st.info("Selecciona los predicados que quieres modificar:")
+                st.markdown("Selecciona los predicados que quieres modificar:")
                 
                 # Inicializar estado para checkboxes
                 if 'ls_preds_a_modificar' not in st.session_state:
@@ -2977,7 +3041,7 @@ def mostrar_asistente_ls():
             st.markdown("### Corrección de predicados")
             
             ls_traducida = st.session_state.ls_estructura_traducida
-            st.markdown(f'<div class="ls-resultado">{ls_traducida}</div>', unsafe_allow_html=True)
+            mostrar_ls_resultado(ls_traducida)
             
             st.write("---")
             
@@ -2988,7 +3052,7 @@ def mostrar_asistente_ls():
                 pred_actual = preds_a_modificar[indice]
                 total = len(preds_a_modificar)
                 
-                st.info(f"Predicado {indice + 1} de {total}: **{pred_actual}**")
+                st.markdown(f"Predicado {indice + 1} de {total}: **{pred_actual}**")
                 
                 with st.form(key=f"form_corregir_{indice}"):
                     nuevo_valor = st.text_input(
@@ -2999,7 +3063,7 @@ def mostrar_asistente_ls():
                         label_visibility="collapsed"
                     )
                     
-                    if st.form_submit_button("Guardar y continuar", use_container_width=True):
+                    if st.form_submit_button("Guardar y continuar", type="primary", use_container_width=True):
                         # Aplicar el cambio si es diferente
                         if nuevo_valor.strip() and nuevo_valor.strip() != pred_actual:
                             ls_corregida = reemplazar_predicado_en_ls(
@@ -3008,6 +3072,7 @@ def mostrar_asistente_ls():
                                 nuevo_valor.strip()
                             )
                             st.session_state.ls_estructura_traducida = ls_corregida
+                            registrar_correccion(pred_actual, nuevo_valor.strip())
                         
                         # Avanzar al siguiente predicado o terminar
                         if indice + 1 < len(preds_a_modificar):
@@ -3022,8 +3087,8 @@ def mostrar_asistente_ls():
 
         # --- SELECCIÓN DE OPERADORES ---
         elif st.session_state.ls_paso == 'seleccionar_operadores':
-            st.markdown("#### **Selección de operadores**")
-            st.info("Marca los operadores que desees añadir e ingresa sus valores:")
+            st.markdown("#### Selección de operadores")
+            st.markdown("Marca los operadores que desees añadir e ingresa sus valores:")
     
             with st.form(key="form_ops"):
                 ops_seleccionados = []
@@ -3085,7 +3150,7 @@ def mostrar_asistente_ls():
                     if checked:
                         ops_seleccionados.append((i, op.codigo, valor))
         
-                if st.form_submit_button("Siguiente", use_container_width=True):
+                if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
                     if ops_seleccionados:
                         # Procesar los valores
                         ops_valores = []
@@ -3115,28 +3180,37 @@ def mostrar_asistente_ls():
             st.markdown("### Resultado final")
             
             ls_final = st.session_state.get('ls_estructura_final', st.session_state.ls_estructura)
-            st.markdown(f'<div class="ls-resultado">{ls_final}</div>', unsafe_allow_html=True)
+            mostrar_ls_resultado(ls_final)
+            mostrar_nota_teorica(ls_final)
             
             st.markdown("<br>", unsafe_allow_html=True) 
 
+            # Versiones a exportar: una sola, o las dos notaciones
+            if tiene_fase_procesual(ls_final):
+                versiones = [(ETIQUETA_NOTACION_MODERNA, ls_final, "vv2023"),
+                             (ETIQUETA_NOTACION_CLASICA, a_notacion_clasica(ls_final), "vvlp1997_vv2005")]
+            else:
+                versiones = [(None, ls_final, "")]
+
             with st.expander("Copiar o descargar estructura lógica (texto plano, LaTeX o imagen)"):
-                ls_copiable = limpiar_html_ls(ls_final)
-                ls_latex = convertir_ls_a_latex(ls_final)
-                
-                st.write("**Texto plano:**")
-                st.code(ls_copiable, language=None)
-                
-                st.write("**LaTeX:**")
-                st.code(ls_latex, language="latex")
-                
-                st.write("**Imagen:**")
-                imagen_bytes = generar_imagen_ls(ls_final)
-                st.download_button(
-                    label="Descargar como PNG",
-                    data=imagen_bytes,
-                    file_name="estructura_logica.png",
-                    mime="image/png"
-                )
+                for etiqueta, ls_version, sufijo in versiones:
+                    if etiqueta:
+                        st.markdown(f"#### {etiqueta}")
+                    st.write("**Texto plano:**")
+                    st.code(limpiar_html_ls(ls_version), language=None)
+                    
+                    st.write("**LaTeX:**")
+                    st.code(convertir_ls_a_latex(ls_version), language="latex")
+                    st.caption("Compila con pdflatex o XeLaTeX sin paquetes adicionales.")
+                    
+                    st.write("**Imagen:**")
+                    st.download_button(
+                        label="Descargar como PNG",
+                        data=generar_imagen_ls(ls_version),
+                        file_name=f"estructura_logica{'_' + sufijo if sufijo else ''}.png",
+                        mime="image/png",
+                        key=f"png_{sufijo or 'unica'}"
+                    )
 
             st.write("---")
             c1, c2 = st.columns(2)

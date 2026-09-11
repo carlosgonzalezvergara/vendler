@@ -5,7 +5,7 @@ def mostrar_info():
     lang = st.session_state.get('lang', 'ES')
 
     if lang == 'ES':
-        st.header("Información y Créditos")
+        st.header("Información y créditos")
         
         st.subheader("Créditos")
         st.markdown("""
@@ -15,15 +15,15 @@ def mostrar_info():
         **Agradecimientos:** Gracias a Rocío Jiménez Briones por su invaluable ayuda en el desarrollo de la versión en inglés del detector de Aktionsart.
         """)
 
-        st.subheader("Bibliografía de Referencia")
+        st.subheader("Bibliografía de referencia")
         st.markdown("""
         * Van Valin, Jr., R. D. (2023). Principles of Role and Reference Grammar. En D. Bentley, R. Mairal Usón, W. Nakamura y R. D. Van Valin, Jr. (Eds.), *The Cambridge Handbook of Role and Reference Grammar* (pp. 17–178). Cambridge University Press.
         * Van Valin, Jr., R. D. (2005). *Exploring the Syntax-Semantics Interface*. Cambridge University Press.
         * Van Valin, Jr., R. D., & LaPolla, R. J. (1997). *Syntax: Structure, meaning, and function*. Cambridge University Press.
         """)
 
-        st.subheader("Contacto Institucional")
-        st.info("Para consultas académicas o reporte de errores, contactar a: **cgonzalv@uc.cl**")
+        st.subheader("Contacto institucional")
+        st.markdown("Para consultas académicas o reporte de errores, contactar a: **cgonzalv@uc.cl**")
 
     else:
         st.header("Information and Credits")
@@ -44,4 +44,4 @@ def mostrar_info():
         """)
 
         st.subheader("Institutional Contact")
-        st.info("For academic inquiries or bug reports, please contact: **cgonzalv@uc.cl**")
+        st.markdown("For academic inquiries or bug reports, please contact: **cgonzalv@uc.cl**")
