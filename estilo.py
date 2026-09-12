@@ -31,8 +31,11 @@ TEXTO_SECUNDARIO = "#5B6573"
 BORDE = "#D5DEE8"
 
 # --- Tipografía de la notación formal ---
-# Sin serifas, como el resto de la interfaz; se distingue por tamaño y color.
-FUENTE_NOTACION = '"Source Sans 3", "Source Sans Pro", "Helvetica Neue", Arial, sans-serif'
+# Hereda la de la interfaz (inherit), en vez de nombrar una familia concreta:
+# así las estructuras lógicas se ven con la misma letra que el resto de la
+# aplicación, sea la que use Streamlit en cada versión. Se distinguen por
+# tamaño, color y fondo, no por familia tipográfica.
+FUENTE_NOTACION = 'inherit'
 
 _CSS = f"""
 <style>
