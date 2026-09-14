@@ -1232,21 +1232,30 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'dinamicidad_confirm':
             clausula = st.session_state.get('ls_clausula_resultante', '')
-            # El infinitivo pertenece al evento resultante, no a la cláusula
-            # original, así que aquí se pide siempre.
-            if not st.session_state.get('ls_infinitivo_resultante'):
+            # El infinitivo y el sujeto son los del evento resultante, un
+            # verbo distinto del de la cláusula causativa (con "enseñar",
+            # por ejemplo, se prueba "ver", no "enseñar"), así que aquí se
+            # piden siempre, nunca se heredan. El sujeto tampoco puede
+            # asumirse como el CD de la cláusula original: con "enseñar" el
+            # que llega a saber es el CI, no el tema. Se piden los dos juntos
+            # en el mismo formulario.
+            if not st.session_state.get('ls_sujeto_resultante'):
                 with st.form(key="form_din_inf_res"):
                     st.markdown(f"Escribe el **infinitivo** del verbo de **{clausula}** (ej.: *romperse*; si es pronominal, agrega el *se*):")
-                    inf = st.text_input("Infinitivo", label_visibility="collapsed")
+                    inf = st.text_input("Infinitivo", label_visibility="collapsed", key="din_inf_res")
+                    st.markdown(f"Escribe el **sujeto** de **{clausula}** (ej.: *el jarrón*):")
+                    suj = st.text_input("Sujeto", label_visibility="collapsed", key="din_suj_res")
                     if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
-                        if inf.strip():
-                            st.session_state.ls_infinitivo_resultante = inf.strip()
-                            st.rerun()
-                        else:
+                        if not inf.strip():
                             st.warning("Escribe el infinitivo del verbo.")
+                        elif not suj.strip():
+                            st.warning("Escribe el sujeto del evento resultante.")
+                        else:
+                            st.session_state.ls_infinitivo_resultante = inf.strip()
+                            st.session_state.ls_sujeto_resultante = suj.strip()
+                            st.rerun()
             else:
-                y = st.session_state.ls_y
-                sujeto = y if y not in ("Ø", "") else ""
+                sujeto = st.session_state.ls_sujeto_resultante
                 expresion = construir_ponerse_a(sujeto, st.session_state.ls_infinitivo_resultante)
                 st.write("Observa esta expresión:")
                 lista_elegante([f"<i>{expresion[0].upper() + expresion[1:]}.</i>"])
@@ -2126,8 +2135,8 @@ def mostrar_asistente_ls():
             locus = st.session_state.ls_locus
             st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
             c1, c2 = st.columns(2)
-            c1.button("1. Procedencia", use_container_width=True, key="proc", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="1"))
-            c2.button("2. Destino", use_container_width=True, key="dest", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="2"))
+            c1.button("La procedencia", use_container_width=True, key="proc", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="1"))
+            c2.button("El destino", use_container_width=True, key="dest", on_click=crear_callback_ir_a('generar_movimiento', ls_lugar_tipo="2"))
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'generar_movimiento':
@@ -2747,10 +2756,10 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'ra_despl_lugar':
             locus = st.session_state.ls_locus
-            st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es (1) la procedencia o (2) el destino?")
+            st.markdown(f"¿*{locus[0].upper() + locus[1:]}* es la procedencia o el destino?")
             c1, c2 = st.columns(2)
-            c1.button("1. Procedencia", use_container_width=True, key="despl_proc", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="NOT be-LOC'"))
-            c2.button("2. Destino", use_container_width=True, key="despl_dest", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="be-LOC'"))
+            c1.button("La procedencia", use_container_width=True, key="despl_proc", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="NOT be-LOC'"))
+            c2.button("El destino", use_container_width=True, key="despl_dest", on_click=crear_callback_ir_a('ra_despl_generar', ls_fin_loc="be-LOC'"))
             botones_navegacion()
 
         elif st.session_state.ls_paso == 'ra_despl_generar':
