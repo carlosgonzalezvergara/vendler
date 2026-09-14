@@ -657,6 +657,24 @@ def generar_estructura_actividad(x, y, locus, pred, operador):
         return f"{operador + ' ' if operador else ''}do' ({x}, [{pred}' ({x})])"
     return None
 
+PLURALES = ("los", "las", "unos", "unas", "ellos", "ellas", "nosotros",
+            "nosotras", "ustedes", "vosotros", "vosotras", "varios", "varias",
+            "muchos", "muchas", "algunos", "algunas", "dos", "tres", "ambos")
+
+def construir_ponerse_a(sujeto: str, infinitivo: str) -> str:
+    """Construye «x se puso a INF», la prueba de dinamicidad del detector.
+
+    Concuerda en plural cuando el sujeto es coordinado o empieza por un
+    determinante o pronombre plural; en el resto de los casos usa el singular.
+    """
+    sujeto = (sujeto or "").strip()
+    palabras = sujeto.lower().split()
+    plural = " y " in f" {sujeto.lower()} " or (palabras and palabras[0] in PLURALES)
+    verbo = "se pusieron a" if plural else "se puso a"
+    if not sujeto or sujeto == "Ø":
+        return f"{verbo} {infinitivo}"
+    return f"{sujeto} {verbo} {infinitivo}"
+
 def aplicar_DO(estructura_logica, x):
     """Marca la agentividad léxica: DO (x, [LS]).
 
@@ -912,6 +930,8 @@ def mostrar_asistente_ls():
         st.session_state.ls_locus = 'Ø'
         st.session_state.ls_complemento_regimen = ''  # NUEVO
         st.session_state.ls_es_dinamico = st.session_state.get('ls_es_dinamico', None)
+        # Infinitivo heredado del detector de aktionsart, si viene de allí
+        st.session_state.ls_infinitivo = st.session_state.get('ls_infinitivo', '')
         st.session_state.ls_estructura = ''
         st.session_state.ls_estructura_pre_do = ''  # NUEVO: antes de DO
         st.session_state.ls_estructura_con_do = ''  # NUEVO: después de DO
@@ -1177,10 +1197,27 @@ def mostrar_asistente_ls():
                 st.session_state.ls_es_dinamico = False
                 ir_a('caso_especial_check')
             elif AKT in ["logro", "semelfactivo"]:
-                st.markdown(f"¿**{oracion[0].upper() + oracion[1:]}** es compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
-                c1, c2 = st.columns(2)
-                c1.button("Sí", use_container_width=True, key="din_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
-                c2.button("No", use_container_width=True, key="din_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
+                # Mismo diagnóstico que el detector de aktionsart:
+                # compatibilidad con «ponerse a + infinitivo».
+                if not st.session_state.get('ls_infinitivo'):
+                    with st.form(key="form_din_inf"):
+                        st.markdown(f"Escribe el **infinitivo** del verbo de **{oracion}** (ej.: *llegar*; si es pronominal, agrega el *se*, ej.: *agacharse*):")
+                        inf = st.text_input("Infinitivo", label_visibility="collapsed")
+                        if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
+                            if inf.strip():
+                                st.session_state.ls_infinitivo = inf.strip()
+                                st.rerun()
+                            else:
+                                st.warning("Escribe el infinitivo del verbo.")
+                else:
+                    expresion = construir_ponerse_a(st.session_state.ls_x,
+                                                    st.session_state.ls_infinitivo)
+                    st.write("Observa esta expresión:")
+                    lista_elegante([f"<i>{expresion[0].upper() + expresion[1:]}.</i>"])
+                    st.markdown("¿Te parece natural esta expresión?")
+                    c1, c2 = st.columns(2)
+                    c1.button("Sí", use_container_width=True, key="din_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
+                    c2.button("No", use_container_width=True, key="din_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
             elif AKT in ["logro causativo", "semelfactivo causativo"]:
                 with st.form(key="form_din_caus"):
                     st.markdown(f"Escribe el evento resultante de **{oracion}**, sin el segmento causativo (ej.:*el gato rompió el jarrón* → **el jarrón se rompió**):")
@@ -1195,10 +1232,28 @@ def mostrar_asistente_ls():
 
         elif st.session_state.ls_paso == 'dinamicidad_confirm':
             clausula = st.session_state.get('ls_clausula_resultante', '')
-            st.markdown(f"¿Es **{clausula}** compatible con expresiones como *enérgicamente*, *con fuerza* o *vigorosamente*?")
-            c1, c2 = st.columns(2)
-            c1.button("Sí", use_container_width=True, key="din_conf_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
-            c2.button("No", use_container_width=True, key="din_conf_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
+            # El infinitivo pertenece al evento resultante, no a la cláusula
+            # original, así que aquí se pide siempre.
+            if not st.session_state.get('ls_infinitivo_resultante'):
+                with st.form(key="form_din_inf_res"):
+                    st.markdown(f"Escribe el **infinitivo** del verbo de **{clausula}** (ej.: *romperse*; si es pronominal, agrega el *se*):")
+                    inf = st.text_input("Infinitivo", label_visibility="collapsed")
+                    if st.form_submit_button("Siguiente", type="primary", use_container_width=True):
+                        if inf.strip():
+                            st.session_state.ls_infinitivo_resultante = inf.strip()
+                            st.rerun()
+                        else:
+                            st.warning("Escribe el infinitivo del verbo.")
+            else:
+                y = st.session_state.ls_y
+                sujeto = y if y not in ("Ø", "") else ""
+                expresion = construir_ponerse_a(sujeto, st.session_state.ls_infinitivo_resultante)
+                st.write("Observa esta expresión:")
+                lista_elegante([f"<i>{expresion[0].upper() + expresion[1:]}.</i>"])
+                st.markdown("¿Te parece natural esta expresión?")
+                c1, c2 = st.columns(2)
+                c1.button("Sí", use_container_width=True, key="din_conf_si", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=True))
+                c2.button("No", use_container_width=True, key="din_conf_no", on_click=crear_callback_ir_a('caso_especial_check', ls_es_dinamico=False))
             botones_navegacion()
 
         # --- PASO: PREDICADO ---

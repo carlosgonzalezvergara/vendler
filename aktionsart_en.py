@@ -394,7 +394,7 @@ def go_back():
         # you can return to 'dynamicity' (normal path) or to 'stativity' (state
         # path), and each case requires clearing a different feature.
         destination = st.session_state.history[-1]
-        if destination in ('causativity', 'verify_cause', 'basic_event'):
+        if destination in ('causativity', 'basic_event'):
             st.session_state.features.causative = None
             st.session_state.non_causative_variant = ""
             # Without this, the tests would keep applying to the non-causative
@@ -499,7 +499,7 @@ def mostrar_detector_en():
         elif st.session_state.akt_step == 'causativity':
             st.markdown("#### Causativity test")
             st.write(
-                f"Try to express only the event or state resulting from "
+                f"Try to express only the event resulting from "
                 f"*{st.session_state.current_clause}*, without mentioning "
                 f"what causes it."
             )
@@ -507,8 +507,21 @@ def mostrar_detector_en():
             elegant_list([
                 "<i>The cat broke the vase</i> → <i>The vase broke</i>",
                 "<i>The hitman killed John</i> → <i>John died</i>",
-                "<i>Ana gave Pepe a book</i> → <i>Pepe has a book</i>"
+                "<i>Ana gave Pepe a book</i> → <i>Pepe came to have a book</i>",
+                "<i>The judge jailed the thief</i> → "
+                "<i>The thief came to be in jail</i>"
             ])
+            st.write(
+                "If the result is not a change of state but a state that is "
+                "maintained, express it as a state (*The engine keeps the "
+                "cabin warm* → *The cabin is warm*)."
+            )
+            st.write(
+                "**Do not use a passive** (*The vase was broken*, *John was "
+                "killed*), because this keeps the causer implicit. If you "
+                "cannot find any reformulation, press *There is no possible "
+                "reformulation*."
+            )
             with st.form(key="form_caus_en"):
                 paraphrase = st.text_input("Type the event or state:")
                 c1, c2 = st.columns(2)
@@ -517,27 +530,10 @@ def mostrar_detector_en():
                         st.warning("Please type the event or state, or press 'There is no possible reformulation'.")
                     else:
                         st.session_state.paraphrase = paraphrase
-                        go_to('verify_cause')
+                        go_to('basic_event')
                 if c2.form_submit_button("There is no possible reformulation", use_container_width=True):
                     st.session_state.features.causative = False
                     go_to('cleanup', '[-causative]')
-            navigation_buttons()
-
-        # --- INDEPENDENCE OF THE EVENT OR STATE ---
-        elif st.session_state.akt_step == 'verify_cause':
-            st.write("Now consider only this event or state:")
-            elegant_list([f"<i>{capitalize_first(st.session_state.paraphrase)}</i>"])
-            st.write(
-                "Can you conceive of this event happening, or this state "
-                "coming about, spontaneously (or without the intervention "
-                "of another participant)?"
-            )
-            c1, c2 = st.columns(2)
-            if c1.button("Yes", use_container_width=True):
-                go_to('basic_event')
-            if c2.button("No", use_container_width=True):
-                st.session_state.features.causative = False
-                go_to('cleanup', '[-causative]')
             navigation_buttons()
 
         # --- CAUSAL RELATION ---
@@ -549,8 +545,8 @@ def mostrar_detector_en():
             )
             st.write(
                 "Does expression (a) introduce any participant who is not "
-                "present in (b) and, moreover, necessarily imply that this "
-                "participant made the event or state in (b) occur or come about?"
+                "present in (b) and, moreover, imply that this participant "
+                "made what (b) expresses occur or come about?"
             )
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):

@@ -1074,7 +1074,6 @@ def volver():
 
         if destino in (
             'causatividad',
-            'verificar_causa',
             'evento_basico'
         ):
             st.session_state.rasgos.causativo = None
@@ -1346,8 +1345,8 @@ def mostrar_detector_es():
             )
 
             st.write(
-                f"Intenta expresar solamente el evento o estado "
-                f"resultante de *{st.session_state.oracion_actual}*, "
+                f"Intenta expresar solamente el evento resultante "
+                f"de *{st.session_state.oracion_actual}*, "
                 f"sin mencionar aquello que lo causa."
             )
 
@@ -1363,8 +1362,24 @@ def mostrar_detector_es():
                 "<i>Juan murió</i>",
 
                 "<i>Ana le dio un libro a Pepe</i> → "
-                "<i>Pepe tiene un libro</i>"
+                "<i>Pepe llegó a tener un libro</i>",
+
+                "<i>El juez encarceló al ladrón</i> → "
+                "<i>El ladrón llegó a estar encarcelado</i>"
             ])
+
+            st.write(
+                "Si lo que resulta no es un cambio de estado, sino un estado "
+                "que se mantiene, escríbelo como estado (*El motor mantiene "
+                "tibia la cabina* → *La cabina está tibia*)."
+            )
+
+            st.write(
+                "**No escribas una pasiva** (*el jarrón fue roto*, *Juan fue "
+                "asesinado*), porque esto mantiene al causante de forma "
+                "implícita. Si no encuentras ninguna reformulación, presiona "
+                "*No hay reformulación posible*."
+            )
 
             with st.form(key="form_caus_es"):
 
@@ -1393,7 +1408,7 @@ def mostrar_detector_es():
                             reformula
                         )
 
-                        ir_a('verificar_causa')
+                        ir_a('evento_basico')
 
                 if c2.form_submit_button(
                     "No hay reformulación posible",
@@ -1406,52 +1421,6 @@ def mostrar_detector_es():
                         'limpieza',
                         '[-causativo]'
                     )
-
-            botones_navegacion()
-
-
-        # --- INDEPENDENCIA DEL EVENTO O ESTADO ---
-
-        elif (
-            st.session_state.akt_paso
-            == 'verificar_causa'
-        ):
-
-            st.write(
-                "Considera ahora solamente este evento o estado:"
-            )
-
-            lista_elegante([
-                f"<i>"
-                f"{mayuscula_inicial(st.session_state.reformulacion)}"
-                f"</i>"
-            ])
-
-            st.write(
-                "¿Puedes concebir que este evento ocurra, o que este estado se dé, "
-                "espontáneamente (o sin la intervención de otro participante)?"
-            )
-
-            c1, c2 = st.columns(2)
-
-            if c1.button(
-                "Sí",
-                use_container_width=True
-            ):
-
-                ir_a('evento_basico')
-
-            if c2.button(
-                "No",
-                use_container_width=True
-            ):
-
-                st.session_state.rasgos.causativo = False
-
-                ir_a(
-                    'limpieza',
-                    '[-causativo]'
-                )
 
             botones_navegacion()
 
@@ -1474,8 +1443,8 @@ def mostrar_detector_es():
 
             st.write(
                 "¿La expresión (a) introduce algún participante que "
-                "no se encuentre en (b) y, además, implica necesariamente "
-                "que ese participante hizo que el evento o estado de (b) "
+                "no se encuentre en (b) y, además, implica "
+                "que ese participante hizo que lo expresado en (b) "
                 "ocurriera o llegara a darse?"
             )
 
