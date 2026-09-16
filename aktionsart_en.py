@@ -530,10 +530,29 @@ def mostrar_detector_en():
                         st.warning("Please type the event or state, or press 'There is no possible reformulation'.")
                     else:
                         st.session_state.paraphrase = paraphrase
-                        go_to('basic_event')
+                        go_to('independent_event')
                 if c2.form_submit_button("There is no possible reformulation", use_container_width=True):
                     st.session_state.features.causative = False
                     go_to('cleanup', '[-causative]')
+            navigation_buttons()
+
+        # --- INDEPENDENT EVENT / STATE ---
+        elif st.session_state.akt_step == 'independent_event':
+            st.markdown("#### Causativity test")
+            st.write("Now consider only the event or state you have just formulated:")
+            st.markdown(f"*{capitalize_first(st.session_state.paraphrase)}*")
+            st.write(
+                "Can you conceive of this event occurring, or this state coming about, "
+                "independently, without it having to be caused by the eventuality "
+                "expressed in the original sentence?"
+            )
+            c1, c2 = st.columns(2)
+            if c1.button("Yes", use_container_width=True):
+                go_to('basic_event')
+            if c2.button("No", use_container_width=True):
+                st.session_state.features.causative = False
+                st.session_state.current_clause = st.session_state.original_clause
+                go_to('cleanup', '[-causative]')
             navigation_buttons()
 
         # --- CAUSAL RELATION ---

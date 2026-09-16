@@ -1074,6 +1074,7 @@ def volver():
 
         if destino in (
             'causatividad',
+            'evento_independiente',
             'evento_basico'
         ):
             st.session_state.rasgos.causativo = None
@@ -1408,7 +1409,7 @@ def mostrar_detector_es():
                             reformula
                         )
 
-                        ir_a('evento_basico')
+                        ir_a('evento_independiente')
 
                 if c2.form_submit_button(
                     "No hay reformulación posible",
@@ -1424,6 +1425,53 @@ def mostrar_detector_es():
 
             botones_navegacion()
 
+
+        # --- INDEPENDENCIA DEL EVENTO RESULTANTE ---
+
+        elif (
+            st.session_state.akt_paso
+            == 'evento_independiente'
+        ):
+
+            st.write(
+                "Considera ahora la reformulación propuesta:"
+            )
+
+            st.markdown(
+                f"*{mayuscula_inicial(st.session_state.reformulacion)}*"
+            )
+
+            st.write(
+                "¿Puedes concebir que este evento ocurra, o que este estado "
+                "llegue a darse, independientemente, sin que tenga que ser "
+                "provocado por la eventualidad expresada en la oración "
+                "original?"
+            )
+
+            c1, c2 = st.columns(2)
+
+            if c1.button(
+                "Sí",
+                use_container_width=True,
+                key="evento_independiente_si"
+            ):
+
+                ir_a('evento_basico')
+
+            if c2.button(
+                "No",
+                use_container_width=True,
+                key="evento_independiente_no"
+            ):
+
+                st.session_state.rasgos.causativo = False
+
+                ir_a(
+                    'limpieza',
+                    '[-causativo]'
+                )
+
+            botones_navegacion()
 
         # --- RELACIÓN CAUSAL ---
 
