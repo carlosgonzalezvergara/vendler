@@ -543,8 +543,7 @@ def mostrar_detector_en():
             st.markdown(f"*{capitalize_first(st.session_state.paraphrase)}*")
             st.write(
                 "Can you conceive of this event occurring, or this state coming about, "
-                "independently, without it having to be caused by the eventuality "
-                "expressed in the original sentence?"
+                "by itself? "
             )
             c1, c2 = st.columns(2)
             if c1.button("Yes", use_container_width=True):

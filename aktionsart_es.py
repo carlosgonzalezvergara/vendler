@@ -1443,9 +1443,7 @@ def mostrar_detector_es():
 
             st.write(
                 "¿Puedes concebir que este evento ocurra, o que este estado "
-                "llegue a darse, independientemente, sin que tenga que ser "
-                "provocado por la eventualidad expresada en la oración "
-                "original?"
+                "llegue a darse por sí mismo? "
             )
 
             c1, c2 = st.columns(2)
